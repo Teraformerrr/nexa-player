@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { basename, join } from 'path'
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
-import { loadMedia, startMpv, stopMpv, togglePause } from './mpv'
+import { getPlaybackState, loadMedia, startMpv, stopMpv, togglePause } from './mpv'
 import icon from '../../resources/icon.png?asset'
 
 const APP_ID = 'com.nexaplayer.desktop'
@@ -100,7 +100,10 @@ async function openMediaFile(): Promise<{
           'opus'
         ]
       },
-      { name: 'All files', extensions: ['*'] }
+      {
+        name: 'All files',
+        extensions: ['*']
+      }
     ]
   })
 
@@ -112,6 +115,7 @@ async function openMediaFile(): Promise<{
 
   try {
     await loadMedia(filePath)
+
     return {
       status: 'opened',
       name: basename(filePath)
@@ -130,8 +134,13 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle('media:open-file', openMediaFile)
+
   ipcMain.handle('media:toggle-pause', async () => {
     await togglePause()
+  })
+
+  ipcMain.handle('media:get-playback-state', async () => {
+    return getPlaybackState()
   })
 
   startMpv()

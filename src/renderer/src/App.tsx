@@ -31,6 +31,7 @@ import {
   Volume2
 } from 'lucide-react'
 import SettingsPanel from './components/SettingsPanel'
+import PlaybackTimeline from './components/PlaybackTimeline'
 
 interface NavigationItem {
   readonly label: string
@@ -360,16 +361,7 @@ function App(): React.JSX.Element {
             </IconButton>
           </div>
 
-          <div className="timeline">
-            <span>0:00</span>
-
-            <div className="timeline-track" aria-label="Playback position">
-              <div className="timeline-track__buffered" />
-              <div className="timeline-track__played" />
-            </div>
-
-            <span>0:00</span>
-          </div>
+          <PlaybackTimeline enabled={currentMediaName !== null} />
         </div>
 
         <div className="player-actions">

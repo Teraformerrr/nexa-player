@@ -8,8 +8,21 @@ const INSTALLED_MPV_PATH = 'C:\\Program Files\\MPV Player\\mpv.exe'
 const IPC_PIPE_PATH = '\\\\.\\pipe\\nexa-player-mpv'
 const CONNECTION_RETRY_DELAY_MS = 100
 const MAX_CONNECTION_ATTEMPTS = 20
+const PROPERTY_TIMEOUT_MS = 2000
 
 let mpvProcess: ChildProcess | null = null
+
+export interface PlaybackState {
+  readonly active: boolean
+  readonly position: number
+  readonly duration: number
+  readonly paused: boolean
+}
+
+interface MpvResponse {
+  readonly data?: unknown
+  readonly error?: string
+}
 
 function findMpvExecutable(): string {
   const bundledPath = join(process.resourcesPath, 'mpv', 'mpv.exe')
@@ -58,6 +71,62 @@ function connectAndSend(command: unknown[], attempt = 1): Promise<void> {
   })
 }
 
+function readProperty(name: string): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    const socket = createConnection(IPC_PIPE_PATH)
+    const message = `${JSON.stringify({ command: ['get_property', name] })}\n`
+    let responseBuffer = ''
+
+    const finish = (error?: Error, data?: unknown): void => {
+      clearTimeout(timeout)
+      socket.destroy()
+
+      if (error) {
+        reject(error)
+      } else {
+        resolve(data)
+      }
+    }
+
+    const timeout = setTimeout(() => {
+      finish(new Error(`Timed out while reading mpv property: ${name}`))
+    }, PROPERTY_TIMEOUT_MS)
+
+    socket.once('connect', () => {
+      socket.write(message, 'utf8')
+    })
+
+    socket.on('data', (chunk) => {
+      responseBuffer += chunk.toString()
+
+      const newlineIndex = responseBuffer.indexOf('\n')
+
+      if (newlineIndex === -1) {
+        return
+      }
+
+      const responseText = responseBuffer.slice(0, newlineIndex)
+
+      try {
+        const response = JSON.parse(responseText) as MpvResponse
+
+        if (response.error !== 'success') {
+          finish(new Error(`mpv could not read property: ${name}`))
+          return
+        }
+
+        finish(undefined, response.data)
+      } catch {
+        finish(new Error(`mpv returned invalid data for property: ${name}`))
+      }
+    })
+
+    socket.once('error', (error) => {
+      finish(error)
+    })
+  })
+}
+
 export function startMpv(): void {
   if (mpvProcess && mpvProcess.exitCode === null) {
     return
@@ -101,6 +170,39 @@ export async function togglePause(): Promise<void> {
   }
 
   await connectAndSend(['cycle', 'pause'])
+}
+
+export async function getPlaybackState(): Promise<PlaybackState> {
+  if (!mpvProcess || mpvProcess.exitCode !== null) {
+    return {
+      active: false,
+      position: 0,
+      duration: 0,
+      paused: false
+    }
+  }
+
+  try {
+    const [position, duration, paused] = await Promise.all([
+      readProperty('time-pos'),
+      readProperty('duration'),
+      readProperty('pause')
+    ])
+
+    return {
+      active: typeof duration === 'number' && duration > 0,
+      position: typeof position === 'number' ? position : 0,
+      duration: typeof duration === 'number' ? duration : 0,
+      paused: typeof paused === 'boolean' ? paused : false
+    }
+  } catch {
+    return {
+      active: false,
+      position: 0,
+      duration: 0,
+      paused: false
+    }
+  }
 }
 
 export function stopMpv(): void {
