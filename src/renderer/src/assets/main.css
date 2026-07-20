@@ -49,11 +49,18 @@ input::placeholder {
   grid-template-columns: 220px minmax(260px, 520px) minmax(max-content, 1fr);
   align-items: center;
   gap: 28px;
-  padding: 0 18px;
+  padding: 0 156px 0 18px;
   border-bottom: 1px solid var(--color-border);
   background: rgba(9, 11, 20, 0.82);
   backdrop-filter: blur(22px);
+  -webkit-app-region: drag;
   z-index: 5;
+}
+
+.topbar button,
+.topbar input,
+.topbar label {
+  -webkit-app-region: no-drag;
 }
 
 .brand {
@@ -879,7 +886,7 @@ input::placeholder {
   .topbar {
     grid-template-columns: 76px minmax(200px, 1fr) max-content;
     gap: 14px;
-    padding: 0 12px;
+    padding: 0 156px 0 12px;
   }
 
   .brand-name,
