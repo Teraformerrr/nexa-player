@@ -1,7 +1,7 @@
-import { app, BrowserWindow, shell } from 'electron'
-import { join } from 'path'
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
+import { basename, join } from 'path'
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
-import { startMpv, stopMpv } from './mpv'
+import { loadMedia, startMpv, stopMpv } from './mpv'
 import icon from '../../resources/icon.png?asset'
 
 const APP_ID = 'com.nexaplayer.desktop'
@@ -74,12 +74,62 @@ function createWindow(): void {
   }
 }
 
+async function openMediaFile(): Promise<{
+  status: 'opened' | 'cancelled' | 'error'
+  name?: string
+}> {
+  const result = await dialog.showOpenDialog({
+    title: 'Open media',
+    properties: ['openFile'],
+    filters: [
+      {
+        name: 'Media files',
+        extensions: [
+          'mp4',
+          'mkv',
+          'webm',
+          'mov',
+          'avi',
+          'm4v',
+          'mp3',
+          'flac',
+          'wav',
+          'm4a',
+          'aac',
+          'ogg',
+          'opus'
+        ]
+      },
+      { name: 'All files', extensions: ['*'] }
+    ]
+  })
+
+  if (result.canceled || result.filePaths.length === 0) {
+    return { status: 'cancelled' }
+  }
+
+  const filePath = result.filePaths[0]
+
+  try {
+    await loadMedia(filePath)
+    return {
+      status: 'opened',
+      name: basename(filePath)
+    }
+  } catch (error) {
+    console.error('Failed to open media:', error)
+    return { status: 'error' }
+  }
+}
+
 app.whenReady().then(() => {
   electronApp.setAppUserModelId(APP_ID)
 
   app.on('browser-window-created', (_event, window) => {
     optimizer.watchWindowShortcuts(window)
   })
+
+  ipcMain.handle('media:open-file', openMediaFile)
 
   startMpv()
   createWindow()

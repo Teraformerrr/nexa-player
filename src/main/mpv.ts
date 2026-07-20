@@ -1,10 +1,13 @@
 import { type ChildProcess, spawn } from 'child_process'
 import { existsSync } from 'fs'
+import { createConnection } from 'net'
 import { join } from 'path'
 import { app } from 'electron'
 
 const INSTALLED_MPV_PATH = 'C:\\Program Files\\MPV Player\\mpv.exe'
 const IPC_PIPE_PATH = '\\\\.\\pipe\\nexa-player-mpv'
+const CONNECTION_RETRY_DELAY_MS = 100
+const MAX_CONNECTION_ATTEMPTS = 20
 
 let mpvProcess: ChildProcess | null = null
 
@@ -31,8 +34,32 @@ function findMpvExecutable(): string {
   return executable
 }
 
+function connectAndSend(command: unknown[], attempt = 1): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const socket = createConnection(IPC_PIPE_PATH)
+    const message = `${JSON.stringify({ command })}\n`
+
+    socket.once('connect', () => {
+      socket.end(message, 'utf8', resolve)
+    })
+
+    socket.once('error', (error: NodeJS.ErrnoException) => {
+      socket.destroy()
+
+      if (error.code === 'ENOENT' && attempt < MAX_CONNECTION_ATTEMPTS) {
+        setTimeout(() => {
+          void connectAndSend(command, attempt + 1).then(resolve, reject)
+        }, CONNECTION_RETRY_DELAY_MS)
+        return
+      }
+
+      reject(error)
+    })
+  })
+}
+
 export function startMpv(): void {
-  if (mpvProcess) {
+  if (mpvProcess && mpvProcess.exitCode === null) {
     return
   }
 
@@ -49,7 +76,6 @@ export function startMpv(): void {
       `--input-ipc-server=${IPC_PIPE_PATH}`
     ],
     {
-      windowsHide: true,
       stdio: 'ignore'
     }
   )
@@ -64,6 +90,11 @@ export function startMpv(): void {
   })
 }
 
+export async function loadMedia(filePath: string): Promise<void> {
+  startMpv()
+  await connectAndSend(['loadfile', filePath, 'replace'])
+}
+
 export function stopMpv(): void {
   if (!mpvProcess) {
     return
@@ -72,5 +103,3 @@ export function stopMpv(): void {
   mpvProcess.kill()
   mpvProcess = null
 }
-
-export { IPC_PIPE_PATH }

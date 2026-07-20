@@ -90,6 +90,9 @@ function IconButton({
 
 function App(): React.JSX.Element {
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [currentMediaName, setCurrentMediaName] = useState<string | null>(null)
+  const [mediaMessage, setMediaMessage] = useState('Open a file to begin')
+  const [openingMedia, setOpeningMedia] = useState(false)
 
   const openSettings = (): void => {
     setSettingsOpen(true)
@@ -97,6 +100,29 @@ function App(): React.JSX.Element {
 
   const closeSettings = (): void => {
     setSettingsOpen(false)
+  }
+
+  const openMedia = async (): Promise<void> => {
+    if (openingMedia) {
+      return
+    }
+
+    setOpeningMedia(true)
+
+    try {
+      const result = await window.nexa.openMedia()
+
+      if (result.status === 'opened') {
+        setCurrentMediaName(result.name ?? 'Selected media')
+        setMediaMessage('Playing with mpv')
+      } else if (result.status === 'error') {
+        setMediaMessage('Unable to open this file')
+      }
+    } catch {
+      setMediaMessage('Unable to reach the playback engine')
+    } finally {
+      setOpeningMedia(false)
+    }
   }
 
   return (
@@ -118,9 +144,14 @@ function App(): React.JSX.Element {
         </label>
 
         <div className="topbar-actions">
-          <button className="command-button command-button--primary" type="button">
+          <button
+            className="command-button command-button--primary"
+            type="button"
+            onClick={() => void openMedia()}
+            disabled={openingMedia}
+          >
             <FilePlus2 aria-hidden="true" size={18} />
-            <span>Open file</span>
+            <span>{openingMedia ? 'Opening…' : 'Open file'}</span>
           </button>
           <button className="command-button" type="button">
             <FolderOpen aria-hidden="true" size={18} />
@@ -176,9 +207,14 @@ function App(): React.JSX.Element {
             <h1 id="welcome-title">Welcome to Nexa Player</h1>
             <p>Open a video, play your music, or build a library that feels entirely yours.</p>
             <div className="welcome-actions">
-              <button className="hero-button hero-button--primary" type="button">
+              <button
+                className="hero-button hero-button--primary"
+                type="button"
+                onClick={() => void openMedia()}
+                disabled={openingMedia}
+              >
                 <FilePlus2 aria-hidden="true" size={19} />
-                Open a media file
+                {openingMedia ? 'Opening…' : 'Open a media file'}
               </button>
               <button className="hero-button" type="button">
                 <FolderOpen aria-hidden="true" size={19} />
@@ -253,8 +289,10 @@ function App(): React.JSX.Element {
             <Music2 size={21} />
           </div>
           <div className="now-playing__copy">
-            <strong>Nothing playing</strong>
-            <span>Open a file to begin</span>
+            <strong title={currentMediaName ?? undefined}>
+              {currentMediaName ?? 'Nothing playing'}
+            </strong>
+            <span>{mediaMessage}</span>
           </div>
           <IconButton label="Add to favourites">
             <Heart aria-hidden="true" size={19} />
