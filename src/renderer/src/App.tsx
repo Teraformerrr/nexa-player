@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
   Captions,
@@ -28,6 +29,7 @@ import {
   Video,
   Volume2
 } from 'lucide-react'
+import SettingsPanel from './components/SettingsPanel'
 
 interface NavigationItem {
   readonly label: string
@@ -65,20 +67,38 @@ function SidebarItem({ label, icon: Icon, active = false }: NavigationItem): Rea
 function IconButton({
   label,
   children,
-  className = ''
+  className = '',
+  onClick
 }: {
   readonly label: string
   readonly children: React.ReactNode
   readonly className?: string
+  readonly onClick?: () => void
 }): React.JSX.Element {
   return (
-    <button className={`icon-button ${className}`} type="button" aria-label={label} title={label}>
+    <button
+      className={`icon-button ${className}`}
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+    >
       {children}
     </button>
   )
 }
 
 function App(): React.JSX.Element {
+  const [settingsOpen, setSettingsOpen] = useState(false)
+
+  const openSettings = (): void => {
+    setSettingsOpen(true)
+  }
+
+  const closeSettings = (): void => {
+    setSettingsOpen(false)
+  }
+
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -106,7 +126,7 @@ function App(): React.JSX.Element {
             <FolderOpen aria-hidden="true" size={18} />
             <span>Open folder</span>
           </button>
-          <IconButton label="Settings">
+          <IconButton label="Settings" onClick={openSettings}>
             <Settings aria-hidden="true" size={20} />
           </IconButton>
         </div>
@@ -125,7 +145,7 @@ function App(): React.JSX.Element {
           ))}
         </nav>
 
-        <button className="sidebar-settings" type="button">
+        <button className="sidebar-settings" type="button" onClick={openSettings}>
           <Settings aria-hidden="true" size={19} />
           <span>Settings</span>
           <ChevronRight aria-hidden="true" size={17} />
@@ -154,7 +174,7 @@ function App(): React.JSX.Element {
               Your media, beautifully organised
             </span>
             <h1 id="welcome-title">Welcome to Nexa Player</h1>
-            <p>Open a video, play your music, or build a library that feels entirely yours</p>
+            <p>Open a video, play your music, or build a library that feels entirely yours.</p>
             <div className="welcome-actions">
               <button className="hero-button hero-button--primary" type="button">
                 <FilePlus2 aria-hidden="true" size={19} />
@@ -293,6 +313,8 @@ function App(): React.JSX.Element {
           </IconButton>
         </div>
       </footer>
+
+      {settingsOpen && <SettingsPanel onClose={closeSettings} />}
     </div>
   )
 }
