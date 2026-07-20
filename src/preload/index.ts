@@ -7,7 +7,8 @@ interface OpenMediaResult {
 
 const nexaApi = Object.freeze({
   platform: process.platform,
-  openMedia: (): Promise<OpenMediaResult> => ipcRenderer.invoke('media:open-file')
+  openMedia: (): Promise<OpenMediaResult> => ipcRenderer.invoke('media:open-file'),
+  togglePause: (): Promise<void> => ipcRenderer.invoke('media:toggle-pause')
 })
 
 contextBridge.exposeInMainWorld('nexa', nexaApi)

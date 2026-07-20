@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { basename, join } from 'path'
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
-import { loadMedia, startMpv, stopMpv } from './mpv'
+import { loadMedia, startMpv, stopMpv, togglePause } from './mpv'
 import icon from '../../resources/icon.png?asset'
 
 const APP_ID = 'com.nexaplayer.desktop'
@@ -130,6 +130,9 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle('media:open-file', openMediaFile)
+  ipcMain.handle('media:toggle-pause', async () => {
+    await togglePause()
+  })
 
   startMpv()
   createWindow()

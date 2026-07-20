@@ -6,6 +6,7 @@ export interface OpenMediaResult {
 export interface NexaApi {
   readonly platform: string
   readonly openMedia: () => Promise<OpenMediaResult>
+  readonly togglePause: () => Promise<void>
 }
 
 declare global {

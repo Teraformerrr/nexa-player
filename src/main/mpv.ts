@@ -95,6 +95,14 @@ export async function loadMedia(filePath: string): Promise<void> {
   await connectAndSend(['loadfile', filePath, 'replace'])
 }
 
+export async function togglePause(): Promise<void> {
+  if (!mpvProcess || mpvProcess.exitCode !== null) {
+    return
+  }
+
+  await connectAndSend(['cycle', 'pause'])
+}
+
 export function stopMpv(): void {
   if (!mpvProcess) {
     return

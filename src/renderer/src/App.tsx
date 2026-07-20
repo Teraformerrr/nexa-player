@@ -16,6 +16,7 @@ import {
   MoreHorizontal,
   Music2,
   PanelRight,
+  Pause,
   PictureInPicture2,
   Play,
   Plug,
@@ -93,6 +94,7 @@ function App(): React.JSX.Element {
   const [currentMediaName, setCurrentMediaName] = useState<string | null>(null)
   const [mediaMessage, setMediaMessage] = useState('Open a file to begin')
   const [openingMedia, setOpeningMedia] = useState(false)
+  const [isPaused, setIsPaused] = useState(false)
 
   const openSettings = (): void => {
     setSettingsOpen(true)
@@ -115,6 +117,7 @@ function App(): React.JSX.Element {
       if (result.status === 'opened') {
         setCurrentMediaName(result.name ?? 'Selected media')
         setMediaMessage('Playing with mpv')
+        setIsPaused(false)
       } else if (result.status === 'error') {
         setMediaMessage('Unable to open this file')
       }
@@ -122,6 +125,20 @@ function App(): React.JSX.Element {
       setMediaMessage('Unable to reach the playback engine')
     } finally {
       setOpeningMedia(false)
+    }
+  }
+
+  const togglePause = async (): Promise<void> => {
+    if (!currentMediaName) {
+      return
+    }
+
+    try {
+      await window.nexa.togglePause()
+      setIsPaused((paused) => !paused)
+      setMediaMessage(isPaused ? 'Playing with mpv' : 'Paused')
+    } catch {
+      setMediaMessage('Unable to control playback')
     }
   }
 
@@ -153,10 +170,12 @@ function App(): React.JSX.Element {
             <FilePlus2 aria-hidden="true" size={18} />
             <span>{openingMedia ? 'Opening…' : 'Open file'}</span>
           </button>
+
           <button className="command-button" type="button">
             <FolderOpen aria-hidden="true" size={18} />
             <span>Open folder</span>
           </button>
+
           <IconButton label="Settings" onClick={openSettings}>
             <Settings aria-hidden="true" size={20} />
           </IconButton>
@@ -166,11 +185,13 @@ function App(): React.JSX.Element {
       <aside className="sidebar">
         <nav className="sidebar-nav" aria-label="Main navigation">
           <p className="sidebar-heading">Library</p>
+
           {libraryItems.map((item) => (
             <SidebarItem key={item.label} {...item} />
           ))}
 
           <p className="sidebar-heading sidebar-heading--spaced">Discover</p>
+
           {discoveryItems.map((item) => (
             <SidebarItem key={item.label} {...item} />
           ))}
@@ -191,8 +212,10 @@ function App(): React.JSX.Element {
           <div className="welcome-visual" aria-hidden="true">
             <div className="visual-orbit visual-orbit--outer" />
             <div className="visual-orbit visual-orbit--inner" />
+
             <div className="visual-disc">
               <span className="visual-disc__shine" />
+
               <span className="visual-disc__center">
                 <Play size={34} fill="currentColor" />
               </span>
@@ -204,8 +227,11 @@ function App(): React.JSX.Element {
               <Sparkles aria-hidden="true" size={15} />
               Your media, beautifully organised
             </span>
+
             <h1 id="welcome-title">Welcome to Nexa Player</h1>
+
             <p>Open a video, play your music, or build a library that feels entirely yours.</p>
+
             <div className="welcome-actions">
               <button
                 className="hero-button hero-button--primary"
@@ -216,6 +242,7 @@ function App(): React.JSX.Element {
                 <FilePlus2 aria-hidden="true" size={19} />
                 {openingMedia ? 'Opening…' : 'Open a media file'}
               </button>
+
               <button className="hero-button" type="button">
                 <FolderOpen aria-hidden="true" size={19} />
                 Add a folder
@@ -230,6 +257,7 @@ function App(): React.JSX.Element {
               <p className="section-kicker">Pick up where you left off</p>
               <h2 id="continue-title">Continue watching</h2>
             </div>
+
             <button className="text-button" type="button">
               View all
               <ChevronRight aria-hidden="true" size={17} />
@@ -240,6 +268,7 @@ function App(): React.JSX.Element {
             <span className="empty-library__icon">
               <History aria-hidden="true" size={23} />
             </span>
+
             <div>
               <h3>Your recent media will appear here</h3>
               <p>Nexa Player will remember your progress after you open your first file.</p>
@@ -254,10 +283,12 @@ function App(): React.JSX.Element {
             <p className="section-kicker">Up next</p>
             <h2>Queue</h2>
           </div>
+
           <div className="queue-header__actions">
             <IconButton label="Queue options">
               <MoreHorizontal aria-hidden="true" size={20} />
             </IconButton>
+
             <IconButton label="Close queue">
               <PanelRight aria-hidden="true" size={20} />
             </IconButton>
@@ -268,6 +299,7 @@ function App(): React.JSX.Element {
           <span className="queue-empty__art">
             <ListMusic aria-hidden="true" size={30} />
           </span>
+
           <h3>Your queue is ready</h3>
           <p>Open media or drag files here to begin.</p>
         </div>
@@ -276,6 +308,7 @@ function App(): React.JSX.Element {
           <span className="queue-tip__icon">
             <Sparkles aria-hidden="true" size={16} />
           </span>
+
           <p>
             <strong>Quick tip</strong>
             Drop multiple files onto Nexa Player to build a queue.
@@ -288,12 +321,14 @@ function App(): React.JSX.Element {
           <div className="now-playing__art" aria-hidden="true">
             <Music2 size={21} />
           </div>
+
           <div className="now-playing__copy">
             <strong title={currentMediaName ?? undefined}>
               {currentMediaName ?? 'Nothing playing'}
             </strong>
             <span>{mediaMessage}</span>
           </div>
+
           <IconButton label="Add to favourites">
             <Heart aria-hidden="true" size={19} />
           </IconButton>
@@ -304,9 +339,22 @@ function App(): React.JSX.Element {
             <IconButton label="Previous">
               <SkipBack aria-hidden="true" size={20} />
             </IconButton>
-            <button className="play-button" type="button" aria-label="Play" title="Play">
-              <Play aria-hidden="true" size={21} fill="currentColor" />
+
+            <button
+              className="play-button"
+              type="button"
+              aria-label={isPaused ? 'Resume' : 'Pause'}
+              title={isPaused ? 'Resume' : 'Pause'}
+              onClick={() => void togglePause()}
+              disabled={!currentMediaName}
+            >
+              {isPaused ? (
+                <Play aria-hidden="true" size={21} fill="currentColor" />
+              ) : (
+                <Pause aria-hidden="true" size={21} fill="currentColor" />
+              )}
             </button>
+
             <IconButton label="Next">
               <SkipForward aria-hidden="true" size={20} />
             </IconButton>
@@ -314,10 +362,12 @@ function App(): React.JSX.Element {
 
           <div className="timeline">
             <span>0:00</span>
+
             <div className="timeline-track" aria-label="Playback position">
               <div className="timeline-track__buffered" />
               <div className="timeline-track__played" />
             </div>
+
             <span>0:00</span>
           </div>
         </div>
@@ -326,21 +376,26 @@ function App(): React.JSX.Element {
           <IconButton label="Playback speed">
             <Gauge aria-hidden="true" size={19} />
           </IconButton>
+
           <IconButton label="Subtitles">
             <Captions aria-hidden="true" size={20} />
           </IconButton>
+
           <IconButton label="Audio tracks">
             <Languages aria-hidden="true" size={19} />
           </IconButton>
+
           <IconButton label="Video settings">
             <SlidersHorizontal aria-hidden="true" size={19} />
           </IconButton>
+
           <IconButton label="Picture in picture">
             <PictureInPicture2 aria-hidden="true" size={19} />
           </IconButton>
 
           <div className="volume-control">
             <Volume2 aria-hidden="true" size={20} />
+
             <div className="volume-track" aria-label="Volume 70 percent">
               <span />
             </div>
