@@ -11,6 +11,7 @@ const MAX_CONNECTION_ATTEMPTS = 20
 const PROPERTY_TIMEOUT_MS = 2000
 
 let mpvProcess: ChildProcess | null = null
+let ipcQueue: Promise<void> = Promise.resolve()
 
 export interface PlaybackState {
   readonly active: boolean
@@ -47,6 +48,17 @@ function findMpvExecutable(): string {
   return executable
 }
 
+function queueIpcOperation<T>(operation: () => Promise<T>): Promise<T> {
+  const result = ipcQueue.then(operation, operation)
+
+  ipcQueue = result.then(
+    () => undefined,
+    () => undefined
+  )
+
+  return result
+}
+
 function connectAndSend(command: unknown[], attempt = 1): Promise<void> {
   return new Promise((resolve, reject) => {
     const socket = createConnection(IPC_PIPE_PATH)
@@ -76,8 +88,14 @@ function readProperty(name: string): Promise<unknown> {
     const socket = createConnection(IPC_PIPE_PATH)
     const message = `${JSON.stringify({ command: ['get_property', name] })}\n`
     let responseBuffer = ''
+    let settled = false
 
     const finish = (error?: Error, data?: unknown): void => {
+      if (settled) {
+        return
+      }
+
+      settled = true
       clearTimeout(timeout)
       socket.destroy()
 
@@ -161,7 +179,10 @@ export function startMpv(): void {
 
 export async function loadMedia(filePath: string): Promise<void> {
   startMpv()
-  await connectAndSend(['loadfile', filePath, 'replace'])
+
+  await queueIpcOperation(async () => {
+    await connectAndSend(['loadfile', filePath, 'replace'])
+  })
 }
 
 export async function togglePause(): Promise<void> {
@@ -169,7 +190,19 @@ export async function togglePause(): Promise<void> {
     return
   }
 
-  await connectAndSend(['cycle', 'pause'])
+  await queueIpcOperation(async () => {
+    await connectAndSend(['cycle', 'pause'])
+  })
+}
+
+export async function seekTo(position: number): Promise<void> {
+  if (!mpvProcess || mpvProcess.exitCode !== null || !Number.isFinite(position)) {
+    return
+  }
+
+  await queueIpcOperation(async () => {
+    await connectAndSend(['seek', Math.max(0, position), 'absolute+exact'])
+  })
 }
 
 export async function getPlaybackState(): Promise<PlaybackState> {
@@ -182,27 +215,29 @@ export async function getPlaybackState(): Promise<PlaybackState> {
     }
   }
 
-  try {
-    const [position, duration, paused] = await Promise.all([
-      readProperty('time-pos'),
-      readProperty('duration'),
-      readProperty('pause')
-    ])
+  return queueIpcOperation(async () => {
+    try {
+      const position = await readProperty('time-pos')
+      const duration = await readProperty('duration')
+      const paused = await readProperty('pause')
 
-    return {
-      active: typeof duration === 'number' && duration > 0,
-      position: typeof position === 'number' ? position : 0,
-      duration: typeof duration === 'number' ? duration : 0,
-      paused: typeof paused === 'boolean' ? paused : false
+      return {
+        active: typeof duration === 'number' && duration > 0,
+        position: typeof position === 'number' ? position : 0,
+        duration: typeof duration === 'number' ? duration : 0,
+        paused: typeof paused === 'boolean' ? paused : false
+      }
+    } catch (error) {
+      console.error('Failed to read mpv playback state:', error)
+
+      return {
+        active: false,
+        position: 0,
+        duration: 0,
+        paused: false
+      }
     }
-  } catch {
-    return {
-      active: false,
-      position: 0,
-      duration: 0,
-      paused: false
-    }
-  }
+  })
 }
 
 export function stopMpv(): void {

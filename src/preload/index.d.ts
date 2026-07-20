@@ -3,7 +3,7 @@ export interface OpenMediaResult {
   name?: string
 }
 
-export interface PlaybackState {
+export interface PlaybackStats {
   active: boolean
   position: number
   duration: number
@@ -15,6 +15,7 @@ export interface NexaApi {
   readonly openMedia: () => Promise<OpenMediaResult>
   readonly togglePause: () => Promise<void>
   readonly getPlaybackState: () => Promise<PlaybackState>
+  readonly seek: (position: number) => Promise<void>
 }
 
 declare global {

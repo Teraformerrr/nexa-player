@@ -79,13 +79,42 @@ function PlaybackTimeline({ enabled }: PlaybackTimelineProps): React.JSX.Element
       ? Math.min(100, Math.max(0, (timeline.position / timeline.duration) * 100))
       : 0
 
+  const seek = (value: string): void => {
+    const position = Number(value)
+
+    if (!Number.isFinite(position) || timeline.duration <= 0) {
+      return
+    }
+
+    setTimeline((current) => ({
+      ...current,
+      position
+    }))
+
+    void window.nexa.seek(position)
+  }
+
   return (
     <div className="timeline">
       <span>{formatTime(timeline.position)}</span>
 
-      <div className="timeline-track" aria-label="Playback position">
+      <div className="timeline-track">
         <div className="timeline-track__buffered" />
         <div className="timeline-track__played" style={{ width: `${progress}%` }} />
+
+        <input
+          className="timeline-seek"
+          type="range"
+          min="0"
+          max={timeline.duration || 0}
+          step="0.1"
+          value={Math.min(timeline.position, timeline.duration || 0)}
+          disabled={!enabled || timeline.duration <= 0}
+          aria-label="Playback position"
+          onChange={(event) => {
+            seek(event.currentTarget.value)
+          }}
+        />
       </div>
 
       <span>{formatTime(timeline.duration)}</span>

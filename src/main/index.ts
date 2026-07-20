@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { basename, join } from 'path'
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
-import { getPlaybackState, loadMedia, startMpv, stopMpv, togglePause } from './mpv'
+import { getPlaybackState, loadMedia, seekTo, startMpv, stopMpv, togglePause } from './mpv'
 import icon from '../../resources/icon.png?asset'
 
 const APP_ID = 'com.nexaplayer.desktop'
@@ -141,6 +141,14 @@ app.whenReady().then(() => {
 
   ipcMain.handle('media:get-playback-state', async () => {
     return getPlaybackState()
+  })
+
+  ipcMain.handle('media:seek', async (_event, position: unknown) => {
+    if (typeof position !== 'number' || !Number.isFinite(position)) {
+      return
+    }
+
+    await seekTo(position)
   })
 
   startMpv()
