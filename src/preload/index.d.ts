@@ -1,8 +1,9 @@
-import { ElectronAPI } from '@electron-toolkit/preload'
+export interface NexaApi {
+  readonly platform: string
+}
 
 declare global {
   interface Window {
-    electron: ElectronAPI
-    api: unknown
+    readonly nexa: NexaApi
   }
 }
