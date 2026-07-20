@@ -16,7 +16,8 @@ const nexaApi = Object.freeze({
   openMedia: (): Promise<OpenMediaResult> => ipcRenderer.invoke('media:open-file'),
   togglePause: (): Promise<void> => ipcRenderer.invoke('media:toggle-pause'),
   getPlaybackState: (): Promise<PlaybackState> => ipcRenderer.invoke('media:get-playback-state'),
-  seek: (position: number): Promise<void> => ipcRenderer.invoke('media:seek', position)
+  seek: (position: number): Promise<void> => ipcRenderer.invoke('media:seek', position),
+  setVolume: (volume: number): Promise<void> => ipcRenderer.invoke('media:set-volume', volume)
 })
 
 contextBridge.exposeInMainWorld('nexa', nexaApi)

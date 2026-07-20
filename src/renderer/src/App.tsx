@@ -27,11 +27,11 @@ import {
   SkipForward,
   SlidersHorizontal,
   Sparkles,
-  Video,
-  Volume2
+  Video
 } from 'lucide-react'
 import SettingsPanel from './components/SettingsPanel'
 import PlaybackTimeline from './components/PlaybackTimeline'
+import VolumeControl from './components/VolumeControl'
 
 interface NavigationItem {
   readonly label: string
@@ -385,13 +385,7 @@ function App(): React.JSX.Element {
             <PictureInPicture2 aria-hidden="true" size={19} />
           </IconButton>
 
-          <div className="volume-control">
-            <Volume2 aria-hidden="true" size={20} />
-
-            <div className="volume-track" aria-label="Volume 70 percent">
-              <span />
-            </div>
-          </div>
+          <VolumeControl />
 
           <IconButton label="Fullscreen">
             <Maximize2 aria-hidden="true" size={19} />

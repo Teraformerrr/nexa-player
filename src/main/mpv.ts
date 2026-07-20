@@ -205,6 +205,18 @@ export async function seekTo(position: number): Promise<void> {
   })
 }
 
+export async function setVolume(volume: number): Promise<void> {
+  if (!Number.isFinite(volume)) {
+    return
+  }
+
+  const normalizedVolume = Math.min(100, Math.max(0, volume))
+
+  await queueIpcOperation(async () => {
+    await connectAndSend(['set_property', 'volume', normalizedVolume])
+  })
+}
+
 export async function getPlaybackState(): Promise<PlaybackState> {
   if (!mpvProcess || mpvProcess.exitCode !== null) {
     return {

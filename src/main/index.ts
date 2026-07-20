@@ -1,7 +1,15 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { basename, join } from 'path'
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
-import { getPlaybackState, loadMedia, seekTo, startMpv, stopMpv, togglePause } from './mpv'
+import {
+  getPlaybackState,
+  loadMedia,
+  seekTo,
+  setVolume,
+  startMpv,
+  stopMpv,
+  togglePause
+} from './mpv'
 import icon from '../../resources/icon.png?asset'
 
 const APP_ID = 'com.nexaplayer.desktop'
@@ -149,6 +157,14 @@ app.whenReady().then(() => {
     }
 
     await seekTo(position)
+  })
+
+  ipcMain.handle('media:set-volume', async (_event, volume: unknown) => {
+    if (typeof volume !== 'number' || !Number.isFinite(volume)) {
+      return
+    }
+
+    await setVolume(volume)
   })
 
   startMpv()
