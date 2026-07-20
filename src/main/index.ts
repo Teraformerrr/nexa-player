@@ -1,6 +1,7 @@
 import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'path'
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
+import { startMpv, stopMpv } from './mpv'
 import icon from '../../resources/icon.png?asset'
 
 const APP_ID = 'com.nexaplayer.desktop'
@@ -80,6 +81,7 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
+  startMpv()
   createWindow()
 
   app.on('activate', () => {
@@ -87,6 +89,10 @@ app.whenReady().then(() => {
       createWindow()
     }
   })
+})
+
+app.on('before-quit', () => {
+  stopMpv()
 })
 
 app.on('window-all-closed', () => {
