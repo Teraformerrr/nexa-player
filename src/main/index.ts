@@ -2,6 +2,7 @@ import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { basename, join } from 'path'
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import {
+  cycleAudioTrack,
   getPlaybackState,
   loadMedia,
   seekBy,
@@ -152,6 +153,10 @@ app.whenReady().then(() => {
 
   ipcMain.handle('media:toggle-fullscreen', async () => {
     await toggleFullscreen()
+  })
+
+  ipcMain.handle('media:cycle-audio-track', async () => {
+    await cycleAudioTrack()
   })
 
   ipcMain.handle('media:get-playback-state', async () => {

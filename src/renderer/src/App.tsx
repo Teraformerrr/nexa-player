@@ -445,7 +445,12 @@ function App(): React.JSX.Element {
             <Captions aria-hidden="true" size={20} />
           </IconButton>
 
-          <IconButton label="Audio tracks">
+          <IconButton
+            label="Cycle audio track"
+            onClick={() => {
+              void window.nexa.cycleAudioTrack()
+            }}
+          >
             <Languages aria-hidden="true" size={19} />
           </IconButton>
 

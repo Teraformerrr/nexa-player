@@ -205,6 +205,16 @@ export async function toggleFullscreen(): Promise<void> {
   })
 }
 
+export async function cycleAudioTrack(): Promise<void> {
+  if (!mpvProcess || mpvProcess.exitCode !== null) {
+    return
+  }
+
+  await queueIpcOperation(async () => {
+    await connectAndSend(['cycle', 'audio'])
+  })
+}
+
 export async function seekTo(position: number): Promise<void> {
   if (!mpvProcess || mpvProcess.exitCode !== null || !Number.isFinite(position)) {
     return

@@ -16,6 +16,7 @@ const nexaApi = Object.freeze({
   openMedia: (): Promise<OpenMediaResult> => ipcRenderer.invoke('media:open-file'),
   togglePause: (): Promise<void> => ipcRenderer.invoke('media:toggle-pause'),
   toggleFullscreen: (): Promise<void> => ipcRenderer.invoke('media:toggle-fullscreen'),
+  cycleAudioTrack: (): Promise<void> => ipcRenderer.invoke('media:cycle-audio-track'),
   getPlaybackState: (): Promise<PlaybackState> => ipcRenderer.invoke('media:get-playback-state'),
   seek: (position: number): Promise<void> => ipcRenderer.invoke('media:seek', position),
   seekBy: (seconds: number): Promise<void> => ipcRenderer.invoke('media:seek-by', seconds),
