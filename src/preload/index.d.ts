@@ -16,6 +16,7 @@ export interface NexaApi {
   readonly togglePause: () => Promise<void>
   readonly toggleFullscreen: () => Promise<void>
   readonly cycleAudioTrack: () => Promise<void>
+  readonly cycleSubtitleTrack: () => Promise<void>
   readonly getPlaybackState: () => Promise<PlaybackState>
   readonly seek: (position: number) => Promise<void>
   readonly seekBy: (seconds: number) => Promise<void>

@@ -441,7 +441,12 @@ function App(): React.JSX.Element {
         <div className="player-actions">
           <PlaybackSpeedControl enabled={currentMediaName !== null} />
 
-          <IconButton label="Subtitles">
+          <IconButton
+            label="Cycle subtitle track"
+            onClick={() => {
+              void window.nexa.cycleSubtitleTrack()
+            }}
+          >
             <Captions aria-hidden="true" size={20} />
           </IconButton>
 

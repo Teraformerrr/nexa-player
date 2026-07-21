@@ -3,6 +3,7 @@ import { basename, join } from 'path'
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import {
   cycleAudioTrack,
+  cycleSubtitleTrack,
   getPlaybackState,
   loadMedia,
   seekBy,
@@ -157,6 +158,10 @@ app.whenReady().then(() => {
 
   ipcMain.handle('media:cycle-audio-track', async () => {
     await cycleAudioTrack()
+  })
+
+  ipcMain.handle('media:cycle-subtitle-track', async () => {
+    await cycleSubtitleTrack()
   })
 
   ipcMain.handle('media:get-playback-state', async () => {

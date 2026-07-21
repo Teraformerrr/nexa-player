@@ -215,6 +215,16 @@ export async function cycleAudioTrack(): Promise<void> {
   })
 }
 
+export async function cycleSubtitleTrack(): Promise<void> {
+  if (!mpvProcess || mpvProcess.exitCode !== null) {
+    return
+  }
+
+  await queueIpcOperation(async () => {
+    await connectAndSend(['cycle', 'sub'])
+  })
+}
+
 export async function seekTo(position: number): Promise<void> {
   if (!mpvProcess || mpvProcess.exitCode !== null || !Number.isFinite(position)) {
     return
