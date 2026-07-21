@@ -5,7 +5,6 @@ import {
   ChevronRight,
   FilePlus2,
   FolderOpen,
-  Gauge,
   Heart,
   History,
   House,
@@ -32,6 +31,7 @@ import {
 import SettingsPanel from './components/SettingsPanel'
 import PlaybackTimeline from './components/PlaybackTimeline'
 import VolumeControl from './components/VolumeControl'
+import PlaybackSpeedControl from './components/PlaybackSpeedControl'
 
 interface NavigationItem {
   readonly label: string
@@ -439,9 +439,7 @@ function App(): React.JSX.Element {
         </div>
 
         <div className="player-actions">
-          <IconButton label="Playback speed">
-            <Gauge aria-hidden="true" size={19} />
-          </IconButton>
+          <PlaybackSpeedControl enabled={currentMediaName !== null} />
 
           <IconButton label="Subtitles">
             <Captions aria-hidden="true" size={20} />

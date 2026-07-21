@@ -6,6 +6,7 @@ import {
   loadMedia,
   seekBy,
   seekTo,
+  setPlaybackSpeed,
   setVolume,
   startMpv,
   stopMpv,
@@ -171,6 +172,14 @@ app.whenReady().then(() => {
     }
 
     await seekBy(seconds)
+  })
+
+  ipcMain.handle('media:set-playback-speed', async (_event, speed: unknown) => {
+    if (typeof speed !== 'number' || !Number.isFinite(speed)) {
+      return
+    }
+
+    await setPlaybackSpeed(speed)
   })
 
   ipcMain.handle('media:set-volume', async (_event, volume: unknown) => {

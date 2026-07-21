@@ -18,6 +18,7 @@ export interface NexaApi {
   readonly getPlaybackState: () => Promise<PlaybackState>
   readonly seek: (position: number) => Promise<void>
   readonly seekBy: (seconds: number) => Promise<void>
+  readonly setPlaybackSpeed: (speed: number) => Promise<void>
   readonly setVolume: (volume: number) => Promise<void>
 }
 

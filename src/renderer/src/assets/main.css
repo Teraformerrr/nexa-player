@@ -882,6 +882,29 @@ input::placeholder {
   gap: 1px;
 }
 
+.playback-speed-button {
+  width: auto;
+  min-width: 52px;
+  gap: 4px;
+  padding: 0 7px;
+}
+
+.playback-speed-button span {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.playback-speed-button:hover span {
+  color: var(--color-text);
+}
+
+.playback-speed-button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
 .volume-control {
   display: flex;
   align-items: center;
