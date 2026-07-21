@@ -195,6 +195,16 @@ export async function togglePause(): Promise<void> {
   })
 }
 
+export async function toggleFullscreen(): Promise<void> {
+  if (!mpvProcess || mpvProcess.exitCode !== null) {
+    return
+  }
+
+  await queueIpcOperation(async () => {
+    await connectAndSend(['cycle', 'fullscreen'])
+  })
+}
+
 export async function seekTo(position: number): Promise<void> {
   if (!mpvProcess || mpvProcess.exitCode !== null || !Number.isFinite(position)) {
     return

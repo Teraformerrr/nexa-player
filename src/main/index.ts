@@ -9,6 +9,7 @@ import {
   setVolume,
   startMpv,
   stopMpv,
+  toggleFullscreen,
   togglePause
 } from './mpv'
 import icon from '../../resources/icon.png?asset'
@@ -146,6 +147,10 @@ app.whenReady().then(() => {
 
   ipcMain.handle('media:toggle-pause', async () => {
     await togglePause()
+  })
+
+  ipcMain.handle('media:toggle-fullscreen', async () => {
+    await toggleFullscreen()
   })
 
   ipcMain.handle('media:get-playback-state', async () => {

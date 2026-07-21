@@ -14,6 +14,7 @@ export interface NexaApi {
   readonly platform: string
   readonly openMedia: () => Promise<OpenMediaResult>
   readonly togglePause: () => Promise<void>
+  readonly toggleFullscreen: () => Promise<void>
   readonly getPlaybackState: () => Promise<PlaybackState>
   readonly seek: (position: number) => Promise<void>
   readonly seekBy: (seconds: number) => Promise<void>

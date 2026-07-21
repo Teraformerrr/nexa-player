@@ -397,7 +397,12 @@ function App(): React.JSX.Element {
 
           <VolumeControl />
 
-          <IconButton label="Fullscreen">
+          <IconButton
+            label="Toggle fullscreen"
+            onClick={() => {
+              void window.nexa.toggleFullscreen()
+            }}
+          >
             <Maximize2 aria-hidden="true" size={19} />
           </IconButton>
         </div>
