@@ -4,6 +4,7 @@ import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import {
   getPlaybackState,
   loadMedia,
+  seekBy,
   seekTo,
   setVolume,
   startMpv,
@@ -157,6 +158,14 @@ app.whenReady().then(() => {
     }
 
     await seekTo(position)
+  })
+
+  ipcMain.handle('media:seek-by', async (_event, seconds: unknown) => {
+    if (typeof seconds !== 'number' || !Number.isFinite(seconds)) {
+      return
+    }
+
+    await seekBy(seconds)
   })
 
   ipcMain.handle('media:set-volume', async (_event, volume: unknown) => {

@@ -205,6 +205,16 @@ export async function seekTo(position: number): Promise<void> {
   })
 }
 
+export async function seekBy(seconds: number): Promise<void> {
+  if (!mpvProcess || mpvProcess.exitCode !== null || !Number.isFinite(seconds)) {
+    return
+  }
+
+  await queueIpcOperation(async () => {
+    await connectAndSend(['seek', seconds, 'relative+exact'])
+  })
+}
+
 export async function setVolume(volume: number): Promise<void> {
   if (!Number.isFinite(volume)) {
     return

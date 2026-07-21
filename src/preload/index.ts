@@ -17,6 +17,7 @@ const nexaApi = Object.freeze({
   togglePause: (): Promise<void> => ipcRenderer.invoke('media:toggle-pause'),
   getPlaybackState: (): Promise<PlaybackState> => ipcRenderer.invoke('media:get-playback-state'),
   seek: (position: number): Promise<void> => ipcRenderer.invoke('media:seek', position),
+  seekBy: (seconds: number): Promise<void> => ipcRenderer.invoke('media:seek-by', seconds),
   setVolume: (volume: number): Promise<void> => ipcRenderer.invoke('media:set-volume', volume)
 })
 

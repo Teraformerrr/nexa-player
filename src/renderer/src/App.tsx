@@ -337,7 +337,12 @@ function App(): React.JSX.Element {
 
         <div className="transport">
           <div className="transport-buttons">
-            <IconButton label="Previous">
+            <IconButton
+              label="Rewind 10 seconds"
+              onClick={() => {
+                void window.nexa.seekBy(-10)
+              }}
+            >
               <SkipBack aria-hidden="true" size={20} />
             </IconButton>
 
@@ -356,7 +361,12 @@ function App(): React.JSX.Element {
               )}
             </button>
 
-            <IconButton label="Next">
+            <IconButton
+              label="Forward 10 seconds"
+              onClick={() => {
+                void window.nexa.seekBy(10)
+              }}
+            >
               <SkipForward aria-hidden="true" size={20} />
             </IconButton>
           </div>
