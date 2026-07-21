@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
   Captions,
@@ -142,6 +142,70 @@ function App(): React.JSX.Element {
       setMediaMessage('Unable to control playback')
     }
   }
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      const target = event.target
+
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        (target instanceof HTMLElement && target.isContentEditable) ||
+        event.ctrlKey ||
+        event.altKey ||
+        event.metaKey
+      ) {
+        return
+      }
+
+      if (!currentMediaName) {
+        return
+      }
+
+      if (event.code === 'Space') {
+        event.preventDefault()
+
+        void window.nexa
+          .togglePause()
+          .then(() => {
+            setIsPaused((paused) => {
+              const nextPaused = !paused
+              setMediaMessage(nextPaused ? 'Paused' : 'Playing with mpv')
+              return nextPaused
+            })
+          })
+          .catch(() => {
+            setMediaMessage('Unable to control playback')
+          })
+
+        return
+      }
+
+      if (event.key == 'ArrowLeft') {
+        event.preventDefault()
+        void window.nexa.seekBy(-10)
+        return
+      }
+
+      if (event.key === 'ArrowRight') {
+        event.preventDefault()
+        void window.nexa.seekBy(10)
+        return
+      }
+
+      if (event.key.toLowerCase() === 'f') {
+        event.preventDefault()
+        void window.nexa.toggleFullscreen()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [currentMediaName])
 
   return (
     <div className="app-shell">
