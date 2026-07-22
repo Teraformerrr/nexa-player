@@ -1,11 +1,14 @@
+import { useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
   Captions,
   Database,
+  ExternalLink,
   Eye,
   FolderSearch,
   Gauge,
   Globe2,
+  Headphones,
   Info,
   Keyboard,
   Monitor,
@@ -17,6 +20,8 @@ import {
   Settings,
   ShieldCheck,
   SlidersHorizontal,
+  Speaker,
+  Waves,
   X
 } from 'lucide-react'
 
@@ -27,11 +32,10 @@ interface SettingsPanelProps {
 interface SettingsCategory {
   readonly label: string
   readonly icon: LucideIcon
-  readonly active?: boolean
 }
 
 const settingsCategories: readonly SettingsCategory[] = [
-  { label: 'General', icon: Settings, active: true },
+  { label: 'General', icon: Settings },
   { label: 'Appearance', icon: Palette },
   { label: 'Playback', icon: Play },
   { label: 'Video', icon: Monitor },
@@ -49,13 +53,18 @@ const settingsCategories: readonly SettingsCategory[] = [
 function SettingsCategoryButton({
   label,
   icon: Icon,
-  active = false
-}: SettingsCategory): React.JSX.Element {
+  active,
+  onSelect
+}: SettingsCategory & {
+  readonly active: boolean
+  readonly onSelect: () => void
+}): React.JSX.Element {
   return (
     <button
       className={`settings-category${active ? ' settings-category--active' : ''}`}
       type="button"
       aria-current={active ? 'page' : undefined}
+      onClick={onSelect}
     >
       <Icon aria-hidden="true" size={18} strokeWidth={1.8} />
       <span>{label}</span>
@@ -91,7 +100,192 @@ function Toggle({
   )
 }
 
+function GeneralSettings(): React.JSX.Element {
+  return (
+    <>
+      <div className="settings-content__heading">
+        <span className="settings-content__icon">
+          <SlidersHorizontal aria-hidden="true" size={21} />
+        </span>
+        <div>
+          <h3>General</h3>
+          <p>Choose how Nexa Player behaves when you open and play media.</p>
+        </div>
+      </div>
+
+      <div className="settings-group">
+        <div className="settings-group__title">
+          <Gauge aria-hidden="true" size={17} />
+          <h4>Startup and playback</h4>
+        </div>
+
+        <label className="select-setting">
+          <span>
+            <strong>When Nexa Player starts</strong>
+            <small>Choose the first page shown when the application opens.</small>
+          </span>
+          <select defaultValue="home" aria-label="Startup page">
+            <option value="home">Open Home</option>
+            <option value="recent">Open Recent</option>
+            <option value="library">Open Library</option>
+          </select>
+        </label>
+
+        <Toggle
+          label="Resume unfinished media"
+          description="Continue videos and music from the last saved position."
+          enabled
+        />
+
+        <Toggle
+          label="Remember playback volume"
+          description="Use your previous volume the next time Nexa Player opens."
+          enabled
+        />
+      </div>
+
+      <div className="settings-group">
+        <div className="settings-group__title">
+          <Eye aria-hidden="true" size={17} />
+          <h4>Window behaviour</h4>
+        </div>
+
+        <Toggle
+          label="Always stay on top"
+          description="Keep the player above other windows while media is playing."
+        />
+
+        <Toggle
+          label="Minimise to notification area"
+          description="Keep Nexa Player running when the main window is closed."
+        />
+      </div>
+
+      <div className="settings-group">
+        <div className="settings-group__title">
+          <FolderSearch aria-hidden="true" size={17} />
+          <h4>File locations</h4>
+        </div>
+
+        <button className="location-setting" type="button">
+          <span>
+            <strong>Screenshot folder</strong>
+            <small>Pictures\Nexa Player</small>
+          </span>
+          <span>Choose folder</span>
+        </button>
+      </div>
+    </>
+  )
+}
+
+function AudioSettings(): React.JSX.Element {
+  const openWindowsSoundSettings = (): void => {
+    void window.nexa.openSoundSettings()
+  }
+
+  return (
+    <>
+      <div className="settings-content__heading">
+        <span className="settings-content__icon">
+          <Music2 aria-hidden="true" size={21} />
+        </span>
+        <div>
+          <h3>Audio</h3>
+          <p>Configure playback quality, spatial sound, and home-theatre output.</p>
+        </div>
+      </div>
+
+      <div className="settings-group">
+        <div className="settings-group__title">
+          <Speaker aria-hidden="true" size={17} />
+          <h4>Playback output</h4>
+        </div>
+
+        <div className="setting-row">
+          <div>
+            <strong>System default output</strong>
+            <p>
+              Nexa Player uses the active Windows playback device and safe multichannel layouts.
+            </p>
+          </div>
+          <span className="setting-status">Active</span>
+        </div>
+
+        <div className="setting-row">
+          <div>
+            <strong>High-quality downmixing</strong>
+            <p>Multichannel audio is normalized safely for stereo speakers and headphones.</p>
+          </div>
+          <span className="setting-status">Enabled</span>
+        </div>
+      </div>
+
+      <div className="settings-group">
+        <div className="settings-group__title">
+          <Headphones aria-hidden="true" size={17} />
+          <h4>Spatial sound</h4>
+        </div>
+
+        <button className="location-setting" type="button" onClick={openWindowsSoundSettings}>
+          <span>
+            <strong>Windows Spatial Sound</strong>
+            <small>
+              Configure Windows Sonic or Dolby Atmos for Headphones for your current device.
+            </small>
+          </span>
+          <span className="location-setting__action">
+            Open settings
+            <ExternalLink aria-hidden="true" size={15} />
+          </span>
+        </button>
+      </div>
+
+      <div className="settings-group">
+        <div className="settings-group__title">
+          <Waves aria-hidden="true" size={17} />
+          <h4>Home theatre</h4>
+        </div>
+
+        <div className="setting-row">
+          <div>
+            <strong>Dolby and DTS bitstream passthrough</strong>
+            <p>
+              Optional HDMI passthrough will be added separately for compatible receivers and
+              soundbars.
+            </p>
+          </div>
+          <span className="setting-status setting-status--planned">Planned</span>
+        </div>
+      </div>
+    </>
+  )
+}
+
+function PlaceholderSettings({
+  category
+}: {
+  readonly category: SettingsCategory
+}): React.JSX.Element {
+  const Icon = category.icon
+
+  return (
+    <div className="settings-placeholder">
+      <span className="settings-content__icon">
+        <Icon aria-hidden="true" size={21} />
+      </span>
+      <h3>{category.label}</h3>
+      <p>This settings page will be connected in a later milestone.</p>
+    </div>
+  )
+}
+
 function SettingsPanel({ onClose }: SettingsPanelProps): React.JSX.Element {
+  const [activeCategory, setActiveCategory] = useState('General')
+  const selectedCategory =
+    settingsCategories.find((category) => category.label === activeCategory) ??
+    settingsCategories[0]
+
   return (
     <div className="settings-backdrop" role="presentation">
       <section
@@ -119,83 +313,25 @@ function SettingsPanel({ onClose }: SettingsPanelProps): React.JSX.Element {
         <div className="settings-panel__body">
           <nav className="settings-categories" aria-label="Settings categories">
             {settingsCategories.map((category) => (
-              <SettingsCategoryButton key={category.label} {...category} />
+              <SettingsCategoryButton
+                key={category.label}
+                {...category}
+                active={activeCategory === category.label}
+                onSelect={() => {
+                  setActiveCategory(category.label)
+                }}
+              />
             ))}
           </nav>
 
           <div className="settings-content">
-            <div className="settings-content__heading">
-              <span className="settings-content__icon">
-                <SlidersHorizontal aria-hidden="true" size={21} />
-              </span>
-              <div>
-                <h3>General</h3>
-                <p>Choose how Nexa Player behaves when you open and play media.</p>
-              </div>
-            </div>
-
-            <div className="settings-group">
-              <div className="settings-group__title">
-                <Gauge aria-hidden="true" size={17} />
-                <h4>Startup and playback</h4>
-              </div>
-
-              <label className="select-setting">
-                <span>
-                  <strong>When Nexa Player starts</strong>
-                  <small>Choose the first page shown when the application opens.</small>
-                </span>
-                <select defaultValue="home" aria-label="Startup page">
-                  <option value="home">Open Home</option>
-                  <option value="recent">Open Recent</option>
-                  <option value="library">Open Library</option>
-                </select>
-              </label>
-
-              <Toggle
-                label="Resume unfinished media"
-                description="Continue videos and music from the last saved position."
-                enabled
-              />
-
-              <Toggle
-                label="Remember playback volume"
-                description="Use your previous volume the next time Nexa Player opens."
-                enabled
-              />
-            </div>
-
-            <div className="settings-group">
-              <div className="settings-group__title">
-                <Eye aria-hidden="true" size={17} />
-                <h4>Window behaviour</h4>
-              </div>
-
-              <Toggle
-                label="Always stay on top"
-                description="Keep the player above other windows while media is playing."
-              />
-
-              <Toggle
-                label="Minimise to notification area"
-                description="Keep Nexa Player running when the main window is closed."
-              />
-            </div>
-
-            <div className="settings-group">
-              <div className="settings-group__title">
-                <FolderSearch aria-hidden="true" size={17} />
-                <h4>File locations</h4>
-              </div>
-
-              <button className="location-setting" type="button">
-                <span>
-                  <strong>Screenshot folder</strong>
-                  <small>Pictures\Nexa Player</small>
-                </span>
-                <span>Choose folder</span>
-              </button>
-            </div>
+            {activeCategory === 'General' ? (
+              <GeneralSettings />
+            ) : activeCategory === 'Audio' ? (
+              <AudioSettings />
+            ) : (
+              <PlaceholderSettings category={selectedCategory} />
+            )}
           </div>
         </div>
       </section>

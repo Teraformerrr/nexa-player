@@ -13,6 +13,7 @@ export interface PlaybackStats {
 export interface NexaApi {
   readonly platform: string
   readonly openMedia: () => Promise<OpenMediaResult>
+  readonly openSoundSettings: () => Promise<void>
   readonly togglePause: () => Promise<void>
   readonly toggleFullscreen: () => Promise<void>
   readonly cycleAudioTrack: () => Promise<void>

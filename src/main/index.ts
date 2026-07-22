@@ -164,6 +164,10 @@ app.whenReady().then(() => {
     await cycleSubtitleTrack()
   })
 
+  ipcMain.handle('system:open-sound-settings', async () => {
+    await shell.openExternal('ms-settings:sound')
+  })
+
   ipcMain.handle('media:get-playback-state', async () => {
     return getPlaybackState()
   })

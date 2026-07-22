@@ -14,6 +14,7 @@ interface PlaybackState {
 const nexaApi = Object.freeze({
   platform: process.platform,
   openMedia: (): Promise<OpenMediaResult> => ipcRenderer.invoke('media:open-file'),
+  openSoundSettings: (): Promise<void> => ipcRenderer.invoke('system:open-sound-settings'),
   togglePause: (): Promise<void> => ipcRenderer.invoke('media:toggle-pause'),
   toggleFullscreen: (): Promise<void> => ipcRenderer.invoke('media:toggle-fullscreen'),
   cycleAudioTrack: (): Promise<void> => ipcRenderer.invoke('media:cycle-audio-track'),
