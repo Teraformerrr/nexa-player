@@ -4,6 +4,13 @@ interface OpenMediaResult {
   status: 'opened' | 'cancelled' | 'error'
   name?: string
 }
+
+interface OpenMediaFolderResult {
+  status: 'opened' | 'cancelled' | 'empty' | 'error'
+  name?: string
+  count?: number
+  items?: string[]
+}
 interface PlaybackState {
   active: boolean
   position: number
@@ -14,6 +21,7 @@ interface PlaybackState {
 const nexaApi = Object.freeze({
   platform: process.platform,
   openMedia: (): Promise<OpenMediaResult> => ipcRenderer.invoke('media:open-file'),
+  openMediaFolder: (): Promise<OpenMediaFolderResult> => ipcRenderer.invoke('media:open-folder'),
   openSoundSettings: (): Promise<void> => ipcRenderer.invoke('system:open-sound-settings'),
   togglePause: (): Promise<void> => ipcRenderer.invoke('media:toggle-pause'),
   toggleFullscreen: (): Promise<void> => ipcRenderer.invoke('media:toggle-fullscreen'),

@@ -1,11 +1,12 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
-import { basename, join } from 'path'
+import { basename, extname, join } from 'path'
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import {
   cycleAudioTrack,
   cycleSubtitleTrack,
   getPlaybackState,
   loadMedia,
+  loadMediaQueue,
   seekBy,
   seekTo,
   setPlaybackSpeed,
@@ -16,8 +17,25 @@ import {
   togglePause
 } from './mpv'
 import icon from '../../resources/icon.png?asset'
+import { readdir } from 'fs/promises'
 
 const APP_ID = 'com.nexaplayer.desktop'
+
+const SUPPORTED_MEDIA_EXTENSIONS = new Set([
+  '.mp4',
+  '.mkv',
+  '.webm',
+  '.mov',
+  '.avi',
+  '.m4v',
+  '.mp3',
+  '.flac',
+  '.wav',
+  '.m4a',
+  '.aac',
+  '.ogg',
+  '.opus'
+])
 
 function isSafeExternalUrl(value: string): boolean {
   try {
@@ -87,6 +105,49 @@ function createWindow(): void {
   }
 }
 
+async function findMediaFiles(directoryPath: string): Promise<string[]> {
+  const mediaFiles: string[] = []
+  const maximumFiles = 1000
+
+  const scanDirectory = async (currentDirectory: string): Promise<void> => {
+    if (mediaFiles.length >= maximumFiles) {
+      return
+    }
+
+    const entries = await readdir(currentDirectory, {
+      withFileTypes: true
+    })
+
+    entries.sort((first, second) =>
+      first.name.localeCompare(second.name, undefined, {
+        numeric: true,
+        sensitivity: 'base'
+      })
+    )
+
+    for (const entry of entries) {
+      if (mediaFiles.length >= maximumFiles) {
+        break
+      }
+
+      const entryPath = join(currentDirectory, entry.name)
+
+      if (entry.isDirectory()) {
+        await scanDirectory(entryPath)
+      } else if (
+        entry.isFile() &&
+        SUPPORTED_MEDIA_EXTENSIONS.has(extname(entry.name).toLowerCase())
+      ) {
+        mediaFiles.push(entryPath)
+      }
+    }
+  }
+
+  await scanDirectory(directoryPath)
+
+  return mediaFiles
+}
+
 async function openMediaFile(): Promise<{
   status: 'opened' | 'cancelled' | 'error'
   name?: string
@@ -139,6 +200,49 @@ async function openMediaFile(): Promise<{
   }
 }
 
+async function openMediaFolder(): Promise<{
+  status: 'opened' | 'cancelled' | 'empty' | 'error'
+  name?: string
+  count?: number
+  items?: string[]
+}> {
+  const result = await dialog.showOpenDialog({
+    title: 'Open media folder',
+    properties: ['openDirectory']
+  })
+
+  if (result.canceled || result.filePaths.length === 0) {
+    return { status: 'cancelled' }
+  }
+
+  const directoryPath = result.filePaths[0]
+
+  try {
+    const mediaFiles = await findMediaFiles(directoryPath)
+
+    if (mediaFiles.length === 0) {
+      return {
+        status: 'empty',
+        name: basename(directoryPath),
+        count: 0,
+        items: []
+      }
+    }
+
+    await loadMediaQueue(mediaFiles)
+
+    return {
+      status: 'opened',
+      name: basename(directoryPath),
+      count: mediaFiles.length,
+      items: mediaFiles.map((filePath) => basename(filePath))
+    }
+  } catch (error) {
+    console.error('Failed to open media folder:', error)
+    return { status: 'error' }
+  }
+}
+
 app.whenReady().then(() => {
   electronApp.setAppUserModelId(APP_ID)
 
@@ -147,6 +251,8 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle('media:open-file', openMediaFile)
+
+  ipcMain.handle('media:open-folder', openMediaFolder)
 
   ipcMain.handle('media:toggle-pause', async () => {
     await togglePause()

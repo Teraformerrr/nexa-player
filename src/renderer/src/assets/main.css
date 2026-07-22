@@ -651,6 +651,78 @@ input::placeholder {
   background: rgba(255, 255, 255, 0.025);
 }
 
+.queue-list {
+  min-height: 0;
+  flex: 1;
+  margin: 18px -5px 14px 0;
+  padding-right: 5px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) transparent;
+}
+
+.queue-item {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  color: var(--color-text-muted);
+}
+
+.queue-item + .queue-item {
+  margin-top: 3px;
+}
+
+.queue-item--active {
+  border-color: rgba(123, 105, 255, 0.2);
+  color: var(--color-text);
+  background: rgba(123, 105, 255, 0.1);
+}
+
+.queue-item__icon {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 9px;
+  color: var(--color-accent-strong);
+  background: rgba(123, 105, 255, 0.11);
+}
+
+.queue-item__copy {
+  min-width: 0;
+}
+
+.queue-item__copy strong,
+.queue-item__copy span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.queue-item__copy strong {
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.queue-item__copy span {
+  margin-top: 2px;
+  color: var(--color-text-subtle);
+  font-size: 9px;
+}
+
+.queue-list__remaining {
+  padding: 12px 10px;
+  color: var(--color-text-subtle);
+  font-size: 10px;
+  text-align: center;
+}
+
 .queue-tip {
   display: flex;
   gap: 10px;

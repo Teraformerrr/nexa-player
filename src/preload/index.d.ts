@@ -3,7 +3,14 @@ export interface OpenMediaResult {
   name?: string
 }
 
-export interface PlaybackStats {
+export interface OpenMediaFolderResult {
+  status: 'opened' | 'cancelled' | 'empty' | 'error'
+  name?: string
+  count?: number
+  items?: string[]
+}
+
+export interface PlaybackState {
   active: boolean
   position: number
   duration: number
@@ -13,6 +20,7 @@ export interface PlaybackStats {
 export interface NexaApi {
   readonly platform: string
   readonly openMedia: () => Promise<OpenMediaResult>
+  readonly openMediaFolder: () => Promise<OpenMediaFolderResult>
   readonly openSoundSettings: () => Promise<void>
   readonly togglePause: () => Promise<void>
   readonly toggleFullscreen: () => Promise<void>

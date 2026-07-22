@@ -95,6 +95,7 @@ function App(): React.JSX.Element {
   const [currentMediaName, setCurrentMediaName] = useState<string | null>(null)
   const [mediaMessage, setMediaMessage] = useState('Open a file to begin')
   const [openingMedia, setOpeningMedia] = useState(false)
+  const [queueItems, setQueueItems] = useState<readonly string[]>([])
   const [isPaused, setIsPaused] = useState(false)
 
   const openSettings = (): void => {
@@ -124,6 +125,39 @@ function App(): React.JSX.Element {
       }
     } catch {
       setMediaMessage('Unable to reach the playback engine')
+    } finally {
+      setOpeningMedia(false)
+    }
+  }
+
+  const openMediaFolder = async (): Promise<void> => {
+    if (openingMedia) {
+      return
+    }
+
+    setOpeningMedia(true)
+
+    try {
+      const result = await window.nexa.openMediaFolder()
+
+      if (result.status === 'opened') {
+        const items = result.items ?? []
+        const firstItem = items[0] ?? 'Selected media folder'
+
+        setQueueItems(items)
+        setCurrentMediaName(firstItem)
+        setMediaMessage(
+          `Playing 1 of ${result.count ?? items.length} from ${result.name ?? 'selected folder'}`
+        )
+        setIsPaused(false)
+      } else if (result.status === 'empty') {
+        setQueueItems([])
+        setMediaMessage('No supported media files were found in this folder')
+      } else if (result.status === 'error') {
+        setMediaMessage('Unable to reach the folder scanner')
+      }
+    } catch {
+      setMediaMessage('Unable to reach the folder scanner')
     } finally {
       setOpeningMedia(false)
     }
@@ -236,9 +270,14 @@ function App(): React.JSX.Element {
             <span>{openingMedia ? 'Opening…' : 'Open file'}</span>
           </button>
 
-          <button className="command-button" type="button">
+          <button
+            className="command-button"
+            type="button"
+            onClick={() => void openMediaFolder()}
+            disabled={openingMedia}
+          >
             <FolderOpen aria-hidden="true" size={18} />
-            <span>Open folder</span>
+            <span>{openingMedia ? 'Opening...' : 'Open folder'}</span>
           </button>
 
           <IconButton label="Settings" onClick={openSettings}>
@@ -308,9 +347,14 @@ function App(): React.JSX.Element {
                 {openingMedia ? 'Opening…' : 'Open a media file'}
               </button>
 
-              <button className="hero-button" type="button">
+              <button
+                className="hero-button"
+                type="button"
+                onClick={() => void openMediaFolder()}
+                disabled={openingMedia}
+              >
                 <FolderOpen aria-hidden="true" size={19} />
-                Add a folder
+                {openingMedia ? 'Opening...' : 'Add a folder'}
               </button>
             </div>
           </div>
@@ -360,14 +404,41 @@ function App(): React.JSX.Element {
           </div>
         </div>
 
-        <div className="queue-empty">
-          <span className="queue-empty__art">
-            <ListMusic aria-hidden="true" size={30} />
-          </span>
+        {queueItems.length > 0 ? (
+          <div className="queue-list" role="list" aria-label="Queued media">
+            {queueItems.slice(0, 100).map((item, index) => (
+              <div
+                className={`queue-item${index === 0 ? ' queue-item--active' : ''}`}
+                role="listitem"
+                key={`${item}-${index}`}
+              >
+                <span className="queue-item__icon">
+                  <Music2 aria-hidden="true" size={16} />
+                </span>
 
-          <h3>Your queue is ready</h3>
-          <p>Open media or drag files here to begin.</p>
-        </div>
+                <div className="queue-item__copy">
+                  <strong title={item}>{item}</strong>
+                  <span>{index === 0 ? 'Now playing' : `Up next · ${index + 1}`}</span>
+                </div>
+              </div>
+            ))}
+
+            {queueItems.length > 100 && (
+              <p className="queue-list__remaining">
+                {queueItems.length - 100} more files are queued
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="queue-empty">
+            <span className="queue-empty__art">
+              <ListMusic aria-hidden="true" size={30} />
+            </span>
+
+            <h3>Your queue is ready</h3>
+            <p>Open a media file or folder to begin.</p>
+          </div>
+        )}
 
         <div className="queue-tip">
           <span className="queue-tip__icon">
