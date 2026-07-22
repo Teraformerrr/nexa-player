@@ -152,20 +152,21 @@ export function startMpv(): void {
 
   const executable = findMpvExecutable()
 
-  mpvProcess = spawn(
-    executable,
-    [
-      '--idle=yes',
-      '--force-window=no',
-      '--keep-open=yes',
-      '--no-terminal',
-      '--hwdec=auto-safe',
-      `--input-ipc-server=${IPC_PIPE_PATH}`
-    ],
-    {
-      stdio: 'ignore'
-    }
-  )
+  const mpvArguments = [
+    '--idle=yes',
+    '--force-window=no',
+    '--keep-open=yes',
+    '--no-terminal',
+    '--hwdec=auto-safe',
+    '--audio-channels=auto-safe',
+    '--audio-normalize-downmix=yes',
+    '--gapless-audio=weak',
+    `--input-ipc-server=${IPC_PIPE_PATH}`
+  ]
+
+  mpvProcess = spawn(executable, mpvArguments, {
+    stdio: 'ignore'
+  })
 
   mpvProcess.once('error', (error) => {
     console.error('Failed to start mpv:', error)
