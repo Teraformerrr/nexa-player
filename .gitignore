@@ -4,3 +4,8 @@ out
 .DS_Store
 .eslintcache
 *.log*
+# Local mpv runtime used when packaging Windows installers
+resources/mpv/*
+!resources/mpv/README.md
+!resources/mpv/licenses/
+!resources/mpv/licenses/**

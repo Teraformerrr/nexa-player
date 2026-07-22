@@ -3,29 +3,40 @@ productName: Nexa Player
 
 directories:
   buildResources: build
+  output: dist/windows
 
 files:
   - '!**/.vscode/*'
   - '!src/*'
+  - '!resources/mpv/**'
   - '!electron.vite.config.{js,ts,mjs,cjs}'
   - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
 
-asarUnpack:
-  - resources/**
+extraResources:
+  - from: resources/mpv
+    to: mpv
+    filter:
+      - '**/*'
 
 win:
-  target: nsis
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: build/icon.ico
   executableName: nexa-player
+  requestedExecutionLevel: asInvoker
 
 nsis:
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
-  artifactName: ${name}-${version}-setup.${ext}
-  shortcutName: ${productName}
-  uninstallDisplayName: ${productName}
+  artifactName: Nexa-player-${version}-Setup.${ext}
+  shortcutName: Nexa Player
+  uninstallDisplayName: Nexa Player
   createDesktopShortcut: true
+
 
 npmRebuild: false

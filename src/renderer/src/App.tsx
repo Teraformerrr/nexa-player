@@ -32,6 +32,7 @@ import SettingsPanel from './components/SettingsPanel'
 import PlaybackTimeline from './components/PlaybackTimeline'
 import VolumeControl from './components/VolumeControl'
 import PlaybackSpeedControl from './components/PlaybackSpeedControl'
+import nexaLogo from './assets/nexa-logo.png'
 
 interface NavigationItem {
   readonly label: string
@@ -245,9 +246,7 @@ function App(): React.JSX.Element {
     <div className="app-shell">
       <header className="topbar">
         <div className="brand" aria-label="Nexa Player">
-          <span className="brand-mark" aria-hidden="true">
-            <span className="brand-mark__core" />
-          </span>
+          <img className="brand-mark" src={nexaLogo} alt="" aria-hidden="true" />
           <span className="brand-name">Nexa</span>
           <span className="brand-product">Player</span>
         </div>

@@ -2,6 +2,7 @@
   "name": "nexa-player",
   "version": "0.1.0",
   "description": "A modern, secure Windows media player built with Electron, React, and TypeScript.",
+  "author": "Nexa Player",
   "private": true,
   "main": "./out/main/index.js",
   "scripts": {

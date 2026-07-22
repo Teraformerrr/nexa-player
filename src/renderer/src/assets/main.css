@@ -72,39 +72,17 @@ input::placeholder {
 }
 
 .brand-mark {
-  position: relative;
+  display: block;
   align-self: center;
-  width: 31px;
-  height: 31px;
+  width: 36px;
+  height: 36px;
   margin-right: 5px;
-  border-radius: 10px 13px 10px 13px;
-  background: var(--gradient-accent);
-  box-shadow: 0 8px 22px rgba(120, 104, 255, 0.34);
-  transform: rotate(-8deg);
-}
-
-.brand-mark::before,
-.brand-mark::after {
-  content: '';
-  position: absolute;
-  inset: 6px;
-  border: 2px solid rgba(255, 255, 255, 0.76);
-  border-radius: 7px 9px 7px 9px;
-}
-
-.brand-mark::after {
-  inset: 11px 8px;
-  border-width: 0 0 0 3px;
-  border-radius: 0;
-  transform: skewY(-28deg);
-}
-
-.brand-mark__core {
-  position: absolute;
-  inset: 12px;
-  border-radius: 999px;
-  background: #ffffff;
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.8);
+  border-radius: 10px;
+  object-fit: cover;
+  box-shadow:
+    0 8px 22px rgba(120, 104, 255, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+  -webkit-user-drag: none;
 }
 
 .brand-name {
