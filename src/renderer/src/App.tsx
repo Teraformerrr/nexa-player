@@ -118,11 +118,16 @@ function App(): React.JSX.Element {
       const result = await window.nexa.openMedia()
 
       if (result.status === 'opened') {
-        setCurrentMediaName(result.name ?? 'Selected media')
-        setMediaMessage('Playing with mpv')
+        const items = result.items ?? []
+        const firstItem = items[0] ?? result.name ?? 'Selected media'
+        const count = result.count ?? (items.length || 1)
+
+        setQueueItems(items)
+        setCurrentMediaName(firstItem)
+        setMediaMessage(count > 1 ? `Playing 1 of ${count} selected files` : 'Playing with mpv')
         setIsPaused(false)
       } else if (result.status === 'error') {
-        setMediaMessage('Unable to open this file')
+        setMediaMessage('Unable to open the selected media')
       }
     } catch {
       setMediaMessage('Unable to reach the playback engine')

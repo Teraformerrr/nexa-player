@@ -3,6 +3,8 @@ import { contextBridge, ipcRenderer } from 'electron'
 interface OpenMediaResult {
   status: 'opened' | 'cancelled' | 'error'
   name?: string
+  count?: number
+  items?: string[]
 }
 
 interface OpenFolderResult {

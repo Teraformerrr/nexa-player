@@ -3,18 +3,18 @@ export interface OpenMediaResult {
   name?: string
 }
 
-export interface OpenFolderResult {
-  status: 'opened' | 'cancelled' | 'empty' | 'error'
+export interface OpenMediaResult {
+  status: 'opened' | 'cancelled' | 'error'
   name?: string
   count?: number
   items?: string[]
 }
 
-export interface PlaybackState {
-  active: boolean
-  position: number
-  duration: number
-  paused: boolean
+export interface OpenFolderResult {
+  status: 'opened' | 'cancelled' | 'empty' | 'error'
+  name?: string
+  count?: number
+  items?: string[]
 }
 
 export type UpdateStatus =

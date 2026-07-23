@@ -1,4 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
+import { readdir } from 'fs/promises'
 import { basename, extname, join } from 'path'
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import {
@@ -24,7 +25,6 @@ import {
   installUpdate
 } from './updater'
 import icon from '../../resources/icon.png?asset'
-import { readdir } from 'fs/promises'
 
 const APP_ID = 'com.nexaplayer.desktop'
 
@@ -160,10 +160,12 @@ async function findMediaFiles(directoryPath: string): Promise<string[]> {
 async function openMediaFile(): Promise<{
   status: 'opened' | 'cancelled' | 'error'
   name?: string
+  count?: number
+  items?: string[]
 }> {
   const result = await dialog.showOpenDialog({
     title: 'Open media',
-    properties: ['openFile'],
+    properties: ['openFile', 'multiSelections'],
     filters: [
       {
         name: 'Media files',
@@ -194,14 +196,20 @@ async function openMediaFile(): Promise<{
     return { status: 'cancelled' }
   }
 
-  const filePath = result.filePaths[0]
+  const filePaths = result.filePaths
 
   try {
-    await loadMedia(filePath)
+    if (filePaths.length === 1) {
+      await loadMedia(filePaths[0])
+    } else {
+      await loadMediaQueue(filePaths)
+    }
 
     return {
       status: 'opened',
-      name: basename(filePath)
+      name: basename(filePaths[0]),
+      count: filePaths.length,
+      items: filePaths.map((filePath) => basename(filePath))
     }
   } catch (error) {
     console.error('Failed to open media:', error)
