@@ -3,7 +3,7 @@ export interface OpenMediaResult {
   name?: string
 }
 
-export interface OpenMediaFolderResult {
+export interface OpenFolderResult {
   status: 'opened' | 'cancelled' | 'empty' | 'error'
   name?: string
   count?: number
@@ -17,10 +17,28 @@ export interface PlaybackState {
   paused: boolean
 }
 
+export type UpdateStatus =
+  | 'idle'
+  | 'unsupported'
+  | 'checking'
+  | 'available'
+  | 'not-available'
+  | 'downloading'
+  | 'downloaded'
+  | 'error'
+
+export interface UpdateState {
+  status: UpdateStatus
+  currentVersion: string
+  availableVersion?: string
+  progress?: number
+  message?: string
+}
+
 export interface NexaApi {
   readonly platform: string
   readonly openMedia: () => Promise<OpenMediaResult>
-  readonly openMediaFolder: () => Promise<OpenMediaFolderResult>
+  readonly openMediaFolder: () => Promise<OpenFolderResult>
   readonly openSoundSettings: () => Promise<void>
   readonly togglePause: () => Promise<void>
   readonly toggleFullscreen: () => Promise<void>
@@ -31,6 +49,11 @@ export interface NexaApi {
   readonly seekBy: (seconds: number) => Promise<void>
   readonly setPlaybackSpeed: (speed: number) => Promise<void>
   readonly setVolume: (volume: number) => Promise<void>
+  readonly getUpdateState: () => Promise<UpdateState>
+  readonly checkForUpdates: () => Promise<UpdateState>
+  readonly downloadUpdate: () => Promise<UpdateState>
+  readonly installUpdate: () => Promise<void>
+  readonly onUpdateState: (listener: (state: UpdateState) => void) => () => void
 }
 
 declare global {

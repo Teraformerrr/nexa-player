@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
   Captions,
@@ -262,6 +262,131 @@ function AudioSettings(): React.JSX.Element {
   )
 }
 
+type UpdateState = Awaited<ReturnType<typeof window.nexa.getUpdateState>>
+
+function UpdatesSettings(): React.JSX.Element {
+  const [updateState, setUpdateState] = useState<UpdateState | null>(null)
+
+  useEffect(() => {
+    let active = true
+
+    const unsubscribe = window.nexa.onUpdateState((state) => {
+      if (active) {
+        setUpdateState(state)
+      }
+    })
+
+    void window.nexa.getUpdateState().then((state) => {
+      if (active) {
+        setUpdateState(state)
+      }
+    })
+
+    return () => {
+      active = false
+      unsubscribe()
+    }
+  }, [])
+
+  const status = updateState?.status ?? 'idle'
+  const busy = status === 'checking' || status === 'downloading'
+  const unsupported = status === 'unsupported'
+
+  const runUpdateAction = async (): Promise<void> => {
+    if (status === 'downloaded') {
+      await window.nexa.installUpdate()
+      return
+    }
+
+    const nextState =
+      status === 'available'
+        ? await window.nexa.downloadUpdate()
+        : await window.nexa.checkForUpdates()
+
+    setUpdateState(nextState)
+  }
+
+  const actionLabel =
+    status === 'downloaded'
+      ? 'Restart and install'
+      : status === 'available'
+        ? 'Download update'
+        : status === 'checking'
+          ? 'Checking…'
+          : status === 'downloading'
+            ? `Downloading… ${Math.round(updateState?.progress ?? 0)}%`
+            : 'Check for updates'
+
+  return (
+    <>
+      <div className="settings-content__heading">
+        <span className="settings-content__icon">
+          <RefreshCw aria-hidden="true" size={21} />
+        </span>
+        <div>
+          <h3>Updates</h3>
+          <p>Keep Nexa Player current with the latest improvements and fixes.</p>
+        </div>
+      </div>
+
+      <div className="settings-group">
+        <div className="settings-group__title">
+          <RefreshCw aria-hidden="true" size={17} />
+          <h4>Application updates</h4>
+        </div>
+
+        <div className="setting-row">
+          <div>
+            <strong>Current version</strong>
+            <p>Nexa Player {updateState?.currentVersion ?? '0.1.0'}</p>
+          </div>
+          <span className="setting-status">
+            {status === 'downloaded'
+              ? 'Ready'
+              : status === 'available'
+                ? `Version ${updateState?.availableVersion}`
+                : status === 'error'
+                  ? 'Attention'
+                  : 'Installed'}
+          </span>
+        </div>
+
+        <div className="update-setting">
+          <div>
+            <strong>Update status</strong>
+            <p>{updateState?.message ?? 'Ready to check for updates.'}</p>
+          </div>
+
+          {(status === 'downloading' || status === 'downloaded') && (
+            <div
+              className="update-progress"
+              role="progressbar"
+              aria-label="Update download progress"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(updateState?.progress ?? 0)}
+            >
+              <span style={{ width: `${updateState?.progress ?? 0}%` }} />
+            </div>
+          )}
+
+          <button
+            className="update-action-button"
+            type="button"
+            disabled={busy || unsupported}
+            onClick={() => {
+              void runUpdateAction()
+            }}
+          >
+            <RefreshCw aria-hidden="true" size={16} />
+            {actionLabel}
+          </button>
+        </div>
+      </div>
+    </>
+  )
+}
+
 function PlaceholderSettings({
   category
 }: {
@@ -329,6 +454,8 @@ function SettingsPanel({ onClose }: SettingsPanelProps): React.JSX.Element {
               <GeneralSettings />
             ) : activeCategory === 'Audio' ? (
               <AudioSettings />
+            ) : activeCategory === 'Updates' ? (
+              <UpdatesSettings />
             ) : (
               <PlaceholderSettings category={selectedCategory} />
             )}

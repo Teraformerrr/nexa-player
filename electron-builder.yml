@@ -40,3 +40,8 @@ nsis:
 
 
 npmRebuild: false
+
+publish:
+  provider: github
+  owner: Teraformerrr
+  repo: nexa-player

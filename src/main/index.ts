@@ -16,6 +16,13 @@ import {
   toggleFullscreen,
   togglePause
 } from './mpv'
+import {
+  checkForUpdates,
+  configureUpdater,
+  downloadUpdate,
+  getUpdateState,
+  installUpdate
+} from './updater'
 import icon from '../../resources/icon.png?asset'
 import { readdir } from 'fs/promises'
 
@@ -46,7 +53,7 @@ function isSafeExternalUrl(value: string): boolean {
   }
 }
 
-function createWindow(): void {
+function createWindow(): BrowserWindow {
   const mainWindow = new BrowserWindow({
     title: 'Nexa Player',
     width: 1280,
@@ -103,6 +110,8 @@ function createWindow(): void {
   } else {
     void mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
+
+  return mainWindow
 }
 
 async function findMediaFiles(directoryPath: string): Promise<string[]> {
@@ -310,8 +319,26 @@ app.whenReady().then(() => {
     await setVolume(volume)
   })
 
+  ipcMain.handle('updates:get-state', () => {
+    return getUpdateState()
+  })
+
+  ipcMain.handle('updates:check', async () => {
+    return checkForUpdates()
+  })
+
+  ipcMain.handle('updates:download', async () => {
+    return downloadUpdate()
+  })
+
+  ipcMain.handle('updates:install', () => {
+    installUpdate()
+  })
+
   startMpv()
-  createWindow()
+
+  const mainWindow = createWindow()
+  configureUpdater(mainWindow)
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

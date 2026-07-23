@@ -267,6 +267,69 @@
   font-weight: 650;
 }
 
+.update-setting {
+  display: grid;
+  gap: 13px;
+  padding: 16px;
+}
+
+.update-setting strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 640;
+}
+
+.update-setting p {
+  margin-top: 3px;
+  color: var(--color-text-subtle);
+  font-size: 10px;
+  line-height: 1.5
+}
+
+.update-progress {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.update-progress span {
+  display: black;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--gradient-accent);
+  transition: width 180ms ease;
+}
+
+.update-action-button {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 14px;
+  border: 1px solid rgba(120, 104, 255, 0.34);
+  border-radius: 9px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #7868ff, #42d9d1);
+  box-shadow: 0 8px 20px rgba(120, 104, 255, 0.18);
+  font-size: 11px;
+  font-weight: 680;
+  cursor: pointer;
+}
+
+.update-action-button:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.update-action-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
 @keyframes settings-fade-in {
   from {
     opacity: 0;
