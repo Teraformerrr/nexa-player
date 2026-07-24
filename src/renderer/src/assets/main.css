@@ -1036,6 +1036,70 @@ input::placeholder {
   opacity: 0.45;
 }
 
+.app-shell--dragging {
+  outline: 2px solid rgba(108, 99, 255, 0.8);
+  outline-offset: -2px
+}
+
+.media-drop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index:40;
+  display: grid;
+  padding:72px 40px 112px;
+  place-items: center;
+  pointer-events: none;
+  background: rgba(7, 9, 17, 0.72);
+  backdrop-filter: blur(12px);
+  animation: media-drop-fade-in 140ms ease-out; 
+}
+
+.media-drop-overlay__content {
+  display: flex;
+  width: min(520px, 100%);
+  min-height: 260px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 36px;
+  border: 2px dashed rgba(126, 111, 255, 0.72);
+  border-radius: 28px;
+  color: var(--color-accent-strong);
+  background: 
+    radial-gradient(circle at 50% 25%, rgba(104, 91, 255, 0.2), transparent 55%),
+    rgba(18, 21, 37, 0.94);
+  box-shadow:
+    0 28px 80px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  text-align: center;  
+}
+
+.media-dropped-overlay__content strong {
+  color: var(--color-text);
+  font-size: 24px;
+  font-weight: 750;
+}
+
+.media-drop-overlay__content span {
+  max-width: 360px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+@keyframes media-drop-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.99);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @media (max-width: 1180px) {
   .app-shell {
     grid-template:

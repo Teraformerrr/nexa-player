@@ -1,5 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
-import { readdir } from 'fs/promises'
+import { readdir, stat } from 'fs/promises'
 import { basename, extname, join } from 'path'
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import {
@@ -157,6 +157,65 @@ async function findMediaFiles(directoryPath: string): Promise<string[]> {
   return mediaFiles
 }
 
+async function openDroppedMedia(value: unknown): Promise<{
+  status: 'opened' | 'error'
+  name?: string
+  count?: number
+  items?: string[]
+}> {
+  if (!Array.isArray(value)) {
+    return { status: 'error' }
+  }
+
+  const candidatePaths = [
+    ...new Set(
+      value.filter(
+        (item): item is string =>
+          typeof item === 'string' && item.length > 0 && item.length <= 32768
+      )
+    )
+  ].slice(0, 1000)
+
+  const mediaFiles: string[] = []
+
+  for (const filePath of candidatePaths) {
+    if (!SUPPORTED_MEDIA_EXTENSIONS.has(extname(filePath).toLowerCase())) {
+      continue
+    }
+
+    try {
+      const fileStats = await stat(filePath)
+
+      if (fileStats.isFile()) {
+        mediaFiles.push(filePath)
+      }
+    } catch {
+      // Ignore missing or inaccessible dropped files.
+    }
+  }
+  if (mediaFiles.length === 0) {
+    return { status: 'error' }
+  }
+
+  try {
+    if (mediaFiles.length === 1) {
+      await loadMedia(mediaFiles[0])
+    } else {
+      await loadMediaQueue(mediaFiles)
+    }
+
+    return {
+      status: 'opened',
+      name: basename(mediaFiles[0]),
+      count: mediaFiles.length,
+      items: mediaFiles.map((filePath) => basename(filePath))
+    }
+  } catch (error) {
+    console.error('Failed to open dropped media:', error)
+    return { status: 'error' }
+  }
+}
+
 async function openMediaFile(): Promise<{
   status: 'opened' | 'cancelled' | 'error'
   name?: string
@@ -265,6 +324,10 @@ app.whenReady().then(() => {
 
   app.on('browser-window-created', (_event, window) => {
     optimizer.watchWindowShortcuts(window)
+  })
+
+  ipcMain.handle('media:open-paths', async (_event, value: unknown) => {
+    return openDroppedMedia(value)
   })
 
   ipcMain.handle('media:open-file', openMediaFile)

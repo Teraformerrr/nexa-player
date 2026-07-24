@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 interface OpenMediaResult {
   status: 'opened' | 'cancelled' | 'error'
@@ -41,7 +41,10 @@ interface UpdateState {
 
 const nexaApi = Object.freeze({
   platform: process.platform,
+  getPathForFile: (file: File): string => webUtils.getPathForFile(file),
   openMedia: (): Promise<OpenMediaResult> => ipcRenderer.invoke('media:open-file'),
+  openDroppedMedia: (filePaths: string[]): Promise<OpenMediaResult> =>
+    ipcRenderer.invoke('media:open-paths', filePaths),
   openMediaFolder: (): Promise<OpenFolderResult> => ipcRenderer.invoke('media:open-folder'),
   openSoundSettings: (): Promise<void> => ipcRenderer.invoke('system:open-sound-settings'),
   togglePause: (): Promise<void> => ipcRenderer.invoke('media:toggle-pause'),

@@ -37,7 +37,9 @@ export interface UpdateState {
 
 export interface NexaApi {
   readonly platform: string
+  readonly getPathForFile: (file: File) => string
   readonly openMedia: () => Promise<OpenMediaResult>
+  readonly openDroppedMedia: (filePaths: string[]) => Promise<OpenMediaResult>
   readonly openMediaFolder: () => Promise<OpenFolderResult>
   readonly openSoundSettings: () => Promise<void>
   readonly togglePause: () => Promise<void>

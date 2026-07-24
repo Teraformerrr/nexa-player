@@ -98,6 +98,7 @@ function App(): React.JSX.Element {
   const [openingMedia, setOpeningMedia] = useState(false)
   const [queueItems, setQueueItems] = useState<readonly string[]>([])
   const [isPaused, setIsPaused] = useState(false)
+  const [isDraggingMedia, setIsDraggingMedia] = useState(false)
 
   const openSettings = (): void => {
     setSettingsOpen(true)
@@ -164,6 +165,53 @@ function App(): React.JSX.Element {
       }
     } catch {
       setMediaMessage('Unable to reach the folder scanner')
+    } finally {
+      setOpeningMedia(false)
+    }
+  }
+
+  const handleMediaDrop = async (event: React.DragEvent<HTMLDivElement>): Promise<void> => {
+    event.preventDefault()
+    event.stopPropagation()
+    setIsDraggingMedia(false)
+
+    if (openingMedia) {
+      return
+    }
+
+    const filePaths = Array.from(event.dataTransfer.files)
+      .map((file) => {
+        try {
+          return window.nexa.getPathForFile(file)
+        } catch {
+          return ''
+        }
+      })
+      .filter((filePath) => filePath.length > 0)
+    if (filePaths.length === 0) {
+      setMediaMessage('No readable media files were dropped')
+      return
+    }
+
+    setOpeningMedia(true)
+
+    try {
+      const result = await window.nexa.openDroppedMedia(filePaths)
+
+      if (result.status == 'opened') {
+        const items = result.items ?? []
+        const firstItem = items[0] ?? result.name ?? 'Dropped media'
+        const count = result.count ?? (items.length || 1)
+
+        setQueueItems(items)
+        setCurrentMediaName(firstItem)
+        setMediaMessage(count > 1 ? `Playing 1 of ${count} dropped files` : 'Playing dropped media')
+        setIsPaused(false)
+      } else {
+        setMediaMessage('No supported media files were dropped')
+      }
+    } catch {
+      setMediaMessage('Unable to open the dropped media')
     } finally {
       setOpeningMedia(false)
     }
@@ -248,7 +296,32 @@ function App(): React.JSX.Element {
   }, [currentMediaName])
 
   return (
-    <div className="app-shell">
+    <div
+      className={`app-shell${isDraggingMedia ? ' app-shell--dragging' : ''}`}
+      onDragEnter={(event) => {
+        if (event.dataTransfer.types.includes('Files')) {
+          event.preventDefault()
+          setIsDraggingMedia(true)
+        }
+      }}
+      onDragOver={(event) => {
+        if (event.dataTransfer.types.includes('Files')) {
+          event.preventDefault()
+          event.dataTransfer.dropEffect = 'copy'
+          setIsDraggingMedia(true)
+        }
+      }}
+      onDragLeave={(event) => {
+        const nextTarget = event.relatedTarget
+
+        if (!(nextTarget instanceof Node) || !event.currentTarget.contains(nextTarget)) {
+          setIsDraggingMedia(false)
+        }
+      }}
+      onDrop={(event) => {
+        void handleMediaDrop(event)
+      }}
+    >
       <header className="topbar">
         <div className="brand" aria-label="Nexa Player">
           <img className="brand-mark" src={nexaLogo} alt="" aria-hidden="true" />
@@ -554,6 +627,16 @@ function App(): React.JSX.Element {
           </IconButton>
         </div>
       </footer>
+
+      {isDraggingMedia && (
+        <div className="media-drop-overlay" role="status" aria-live="polite">
+          <div className="media-drop-overlay__content">
+            <FilePlus2 aria-hidden="true" size={42} strokeWidth={1.7} />
+            <strong>Drop media to play</strong>
+            <span>Drop one or more audio or video files to create a queue</span>
+          </div>
+        </div>
+      )}
 
       {settingsOpen && <SettingsPanel onClose={closeSettings} />}
     </div>
