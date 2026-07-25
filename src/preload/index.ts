@@ -7,6 +7,12 @@ interface OpenMediaResult {
   items?: string[]
 }
 
+interface RecentMediaItem {
+  path: string
+  name: string
+  openedAt: number
+}
+
 interface OpenFolderResult {
   status: 'opened' | 'cancelled' | 'empty' | 'error'
   name?: string
@@ -42,6 +48,7 @@ interface UpdateState {
 const nexaApi = Object.freeze({
   platform: process.platform,
   getPathForFile: (file: File): string => webUtils.getPathForFile(file),
+  getRecentMedia: (): Promise<RecentMediaItem[]> => ipcRenderer.invoke('media:get-recent'),
   openMedia: (): Promise<OpenMediaResult> => ipcRenderer.invoke('media:open-file'),
   openDroppedMedia: (filePaths: string[]): Promise<OpenMediaResult> =>
     ipcRenderer.invoke('media:open-paths', filePaths),

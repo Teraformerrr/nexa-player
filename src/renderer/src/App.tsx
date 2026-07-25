@@ -40,6 +40,12 @@ interface NavigationItem {
   readonly active?: boolean
 }
 
+interface RecentMediaItem {
+  readonly path: string
+  readonly name: string
+  readonly openedAt: number
+}
+
 const libraryItems: readonly NavigationItem[] = [
   { label: 'Home', icon: House, active: true },
   { label: 'Videos', icon: Video },
@@ -97,8 +103,32 @@ function App(): React.JSX.Element {
   const [mediaMessage, setMediaMessage] = useState('Open a file to begin')
   const [openingMedia, setOpeningMedia] = useState(false)
   const [queueItems, setQueueItems] = useState<readonly string[]>([])
+  const [recentMedia, setRecentMedia] = useState<readonly RecentMediaItem[]>([])
   const [isPaused, setIsPaused] = useState(false)
   const [isDraggingMedia, setIsDraggingMedia] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    const loadRecentMedia = async (): Promise<void> => {
+      try {
+        const items = await window.nexa.getRecentMedia()
+
+        if (!cancelled) {
+          setRecentMedia(items)
+        }
+      } catch {
+        if (!cancelled) {
+          setRecentMedia([])
+        }
+      }
+    }
+
+    void loadRecentMedia()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const openSettings = (): void => {
     setSettingsOpen(true)
@@ -127,6 +157,7 @@ function App(): React.JSX.Element {
         setCurrentMediaName(firstItem)
         setMediaMessage(count > 1 ? `Playing 1 of ${count} selected files` : 'Playing with mpv')
         setIsPaused(false)
+        setRecentMedia(await window.nexa.getRecentMedia())
       } else if (result.status === 'error') {
         setMediaMessage('Unable to open the selected media')
       }
@@ -157,6 +188,7 @@ function App(): React.JSX.Element {
           `Playing 1 of ${result.count ?? items.length} from ${result.name ?? 'selected folder'}`
         )
         setIsPaused(false)
+        setRecentMedia(await window.nexa.getRecentMedia())
       } else if (result.status === 'empty') {
         setQueueItems([])
         setMediaMessage('No supported media files were found in this folder')
@@ -207,11 +239,38 @@ function App(): React.JSX.Element {
         setCurrentMediaName(firstItem)
         setMediaMessage(count > 1 ? `Playing 1 of ${count} dropped files` : 'Playing dropped media')
         setIsPaused(false)
+        setRecentMedia(await window.nexa.getRecentMedia())
       } else {
         setMediaMessage('No supported media files were dropped')
       }
     } catch {
       setMediaMessage('Unable to open the dropped media')
+    } finally {
+      setOpeningMedia(false)
+    }
+  }
+
+  const openRecentMedia = async (item: RecentMediaItem): Promise<void> => {
+    if (openingMedia) {
+      return
+    }
+
+    setOpeningMedia(true)
+
+    try {
+      const result = await window.nexa.openDroppedMedia([item.path])
+
+      if (result.status === 'opened') {
+        setQueueItems(result.items ?? [item.name])
+        setCurrentMediaName(result.name ?? item.name)
+        setMediaMessage('Playing from recent media')
+        setIsPaused(false)
+        setRecentMedia(await window.nexa.getRecentMedia())
+      } else {
+        setMediaMessage('This recent media file is unavailable')
+      }
+    } catch {
+      setMediaMessage('Unable to open this recent media file')
     } finally {
       setOpeningMedia(false)
     }
@@ -450,16 +509,50 @@ function App(): React.JSX.Element {
             </button>
           </div>
 
-          <div className="empty-library">
-            <span className="empty-library__icon">
-              <History aria-hidden="true" size={23} />
-            </span>
+          {recentMedia.length > 0 ? (
+            <div className="recent-media-list" aria-label="recent media">
+              {recentMedia.slice(0, 4).map((item) => (
+                <button
+                  className="recent-media-card"
+                  type="button"
+                  key={item.path}
+                  title={item.path}
+                  disabled={openingMedia}
+                  onClick={() => {
+                    void openRecentMedia(item)
+                  }}
+                >
+                  <span className="recent-media-card__icon">
+                    <Play aria-hidden="true" size={18} fill="currentColor" />
+                  </span>
 
-            <div>
-              <h3>Your recent media will appear here</h3>
-              <p>Nexa Player will remember your progress after you open your first file.</p>
+                  <span className="recent-media-card__copy">
+                    <strong>{item.name}</strong>
+                    <small>
+                      Opened{' '}
+                      {new Date(item.name).toLocaleTimeString([], {
+                        dateStyle: 'medium',
+                        timeStyle: 'short'
+                      })}
+                    </small>
+                  </span>
+
+                  <ChevronRight aria-hidden="true" size={17} />
+                </button>
+              ))}
             </div>
-          </div>
+          ) : (
+            <div className="empty-library">
+              <span className="empty-library__icon">
+                <History aria-hidden="true" size={23} />
+              </span>
+
+              <div>
+                <h3>Ypur recent media will appear here</h3>
+                <p>Nexa Player will remember media after you open your first file</p>
+              </div>
+            </div>
+          )}
         </section>
       </main>
 

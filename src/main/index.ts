@@ -25,6 +25,7 @@ import {
   installUpdate
 } from './updater'
 import icon from '../../resources/icon.png?asset'
+import { addRecentMedia, getRecentMedia } from './mediaHistory'
 
 const APP_ID = 'com.nexaplayer.desktop'
 
@@ -204,6 +205,8 @@ async function openDroppedMedia(value: unknown): Promise<{
       await loadMediaQueue(mediaFiles)
     }
 
+    await addRecentMedia(mediaFiles[0], basename(mediaFiles[0]))
+
     return {
       status: 'opened',
       name: basename(mediaFiles[0]),
@@ -264,6 +267,8 @@ async function openMediaFile(): Promise<{
       await loadMediaQueue(filePaths)
     }
 
+    await addRecentMedia(filePaths[0], basename(filePaths[0]))
+
     return {
       status: 'opened',
       name: basename(filePaths[0]),
@@ -307,6 +312,8 @@ async function openMediaFolder(): Promise<{
 
     await loadMediaQueue(mediaFiles)
 
+    await addRecentMedia(mediaFiles[0], basename(mediaFiles[0]))
+
     return {
       status: 'opened',
       name: basename(directoryPath),
@@ -340,6 +347,10 @@ app.whenReady().then(() => {
 
   ipcMain.handle('media:toggle-fullscreen', async () => {
     await toggleFullscreen()
+  })
+
+  ipcMain.handle('media:get-recent', async () => {
+    return getRecentMedia()
   })
 
   ipcMain.handle('media:cycle-audio-track', async () => {

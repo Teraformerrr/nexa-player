@@ -3,6 +3,12 @@ export interface OpenMediaResult {
   name?: string
 }
 
+export interface RecentMediaItem {
+  path: string
+  name: string
+  openedAt: number
+}
+
 export interface OpenMediaResult {
   status: 'opened' | 'cancelled' | 'error'
   name?: string
@@ -38,6 +44,7 @@ export interface UpdateState {
 export interface NexaApi {
   readonly platform: string
   readonly getPathForFile: (file: File) => string
+  readonly getRecentMedia: () => Promise<RecentMediaItem[]>
   readonly openMedia: () => Promise<OpenMediaResult>
   readonly openDroppedMedia: (filePaths: string[]) => Promise<OpenMediaResult>
   readonly openMediaFolder: () => Promise<OpenFolderResult>
