@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
   Captions,
@@ -60,6 +60,8 @@ const discoveryItems: readonly NavigationItem[] = [
   { label: 'Connected services', icon: Plug }
 ]
 
+const VIDEO_FILE_PATTERN = /\.(mp4|mkv|webm|mov|avi|m4v)$/i
+
 function SidebarItem({ label, icon: Icon, active = false }: NavigationItem): React.JSX.Element {
   return (
     <button
@@ -105,7 +107,16 @@ function App(): React.JSX.Element {
   const [queueItems, setQueueItems] = useState<readonly string[]>([])
   const [recentMedia, setRecentMedia] = useState<readonly RecentMediaItem[]>([])
   const [isPaused, setIsPaused] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [fullscreenControlsVisible, setFullscreenControlsVisible] = useState(true)
+  const fullscreenControlsTimerRef = useRef<number | null>(null)
   const [isDraggingMedia, setIsDraggingMedia] = useState(false)
+
+  useEffect(() => {
+    return window.nexa.onFullscreenChange((fullscreen) => {
+      setIsFullscreen(fullscreen)
+    })
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -129,6 +140,93 @@ function App(): React.JSX.Element {
       cancelled = true
     }
   }, [])
+
+  const videoSurfaceRef = useRef<HTMLElement | null>(null)
+  const isVideoMedia = currentMediaName !== null && VIDEO_FILE_PATTERN.test(currentMediaName)
+
+  useEffect(() => {
+    const videoSurface = videoSurfaceRef.current
+    const visible = isVideoMedia && !settingsOpen
+
+    if (!videoSurface || !visible) {
+      void window.nexa.setVideoBounds({
+        x: 0,
+        y: 0,
+        width: 1,
+        height: 1,
+        visible: false
+      })
+
+      return
+    }
+
+    const updateVideoBounds = (): void => {
+      const bounds = videoSurface.getBoundingClientRect()
+
+      void window.nexa.setVideoBounds({
+        x: bounds.x,
+        y: bounds.y,
+        width: bounds.width,
+        height: bounds.height,
+        visible: true
+      })
+    }
+
+    const resizeObserver = new ResizeObserver(updateVideoBounds)
+
+    updateVideoBounds()
+    resizeObserver.observe(videoSurface)
+    window.addEventListener('resize', updateVideoBounds)
+    window.addEventListener('scroll', updateVideoBounds, true)
+
+    return () => {
+      resizeObserver.disconnect()
+      window.removeEventListener('resize', updateVideoBounds)
+      window.removeEventListener('scroll', updateVideoBounds, true)
+
+      void window.nexa.setVideoBounds({
+        x: 0,
+        y: 0,
+        width: 1,
+        height: 1,
+        visible: false
+      })
+    }
+  }, [isVideoMedia, settingsOpen])
+
+  const showFullscreenControls = useCallback((): void => {
+    setFullscreenControlsVisible(true)
+
+    if (fullscreenControlsTimerRef.current !== null) {
+      window.clearTimeout(fullscreenControlsTimerRef.current)
+      fullscreenControlsTimerRef.current = null
+    }
+
+    if (isFullscreen) {
+      fullscreenControlsTimerRef.current = window.setTimeout(() => {
+        setFullscreenControlsVisible(false)
+        fullscreenControlsTimerRef.current = null
+      }, 2500)
+    }
+  }, [isFullscreen])
+
+  useEffect(() => {
+    const removeVideoActivityListener = window.nexa.onVideoActivity(() => {
+      showFullscreenControls()
+    })
+
+    const initialVisibilityTimer = window.setTimeout(showFullscreenControls, 0)
+
+    return () => {
+      removeVideoActivityListener()
+      window.clearTimeout(initialVisibilityTimer)
+
+      if (fullscreenControlsTimerRef.current !== null) {
+        window.clearTimeout(fullscreenControlsTimerRef.current)
+        fullscreenControlsTimerRef.current = null
+      }
+    }
+  }, [showFullscreenControls])
 
   const openSettings = (): void => {
     setSettingsOpen(true)
@@ -306,6 +404,12 @@ function App(): React.JSX.Element {
         return
       }
 
+      if (event.key === 'Escape' && isFullscreen) {
+        event.preventDefault()
+        void window.nexa.toggleFullscreen()
+        return
+      }
+
       if (!currentMediaName) {
         return
       }
@@ -352,11 +456,14 @@ function App(): React.JSX.Element {
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [currentMediaName])
+  }, [currentMediaName, isFullscreen])
 
   return (
     <div
-      className={`app-shell${isDraggingMedia ? ' app-shell--dragging' : ''}`}
+      className={`app-shell${isDraggingMedia ? ' app-shell--dragging' : ''}${
+        isFullscreen ? ' app-shell--fullscreen' : ''
+      }${isFullscreen && !fullscreenControlsVisible ? ' app-shell--controls-hidden' : ''}`}
+      onMouseMove={showFullscreenControls}
       onDragEnter={(event) => {
         if (event.dataTransfer.types.includes('Files')) {
           event.preventDefault()
@@ -444,7 +551,23 @@ function App(): React.JSX.Element {
         </button>
       </aside>
 
-      <main className="content">
+      <main className={`content${isVideoMedia ? ' content--video' : ''}`}>
+        {isVideoMedia && (
+          <section
+            className="video-surface"
+            ref={videoSurfaceRef}
+            onDoubleClick={() => {
+              void window.nexa.toggleFullscreen()
+            }}
+            aria-label={`Video playback: ${currentMediaName ?? 'Selected video'}`}
+          >
+            <div className="video-surface__placeholder" aria-hidden="true">
+              <Video size={32} />
+              <span>Preparing video...</span>
+            </div>
+          </section>
+        )}
+
         <section className="welcome-card" aria-labelledby="welcome-title">
           <div className="welcome-glow welcome-glow--one" />
           <div className="welcome-glow welcome-glow--two" />
@@ -548,7 +671,7 @@ function App(): React.JSX.Element {
               </span>
 
               <div>
-                <h3>Ypur recent media will appear here</h3>
+                <h3>Your recent media will appear here</h3>
                 <p>Nexa Player will remember media after you open your first file</p>
               </div>
             </div>

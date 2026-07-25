@@ -41,6 +41,14 @@ export interface UpdateState {
   message?: string
 }
 
+export interface VideoBounds {
+  x: number
+  y: number
+  width: number
+  height: number
+  visible: boolean
+}
+
 export interface NexaApi {
   readonly platform: string
   readonly getPathForFile: (file: File) => string
@@ -57,11 +65,14 @@ export interface NexaApi {
   readonly seek: (position: number) => Promise<void>
   readonly seekBy: (seconds: number) => Promise<void>
   readonly setPlaybackSpeed: (speed: number) => Promise<void>
+  readonly setVideoBounds: (bounds: VideoBounds) => Promise<void>
   readonly setVolume: (volume: number) => Promise<void>
   readonly getUpdateState: () => Promise<UpdateState>
   readonly checkForUpdates: () => Promise<UpdateState>
   readonly downloadUpdate: () => Promise<UpdateState>
   readonly installUpdate: () => Promise<void>
+  readonly onVideoActivity: (listener: () => void) => () => void
+  readonly onFullscreenChange: (listener: (fullscreen: boolean) => void) => () => void
   readonly onUpdateState: (listener: (state: UpdateState) => void) => () => void
 }
 

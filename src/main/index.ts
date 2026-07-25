@@ -10,11 +10,11 @@ import {
   loadMediaQueue,
   seekBy,
   seekTo,
+  setMpvWindowId,
   setPlaybackSpeed,
   setVolume,
   startMpv,
   stopMpv,
-  toggleFullscreen,
   togglePause
 } from './mpv'
 import {
@@ -28,6 +28,18 @@ import icon from '../../resources/icon.png?asset'
 import { addRecentMedia, getRecentMedia } from './mediaHistory'
 
 const APP_ID = 'com.nexaplayer.desktop'
+
+let applicationWindow: BrowserWindow | null = null
+let embeddedVideoWindow: BrowserWindow | null = null
+let videoInputWindow: BrowserWindow | null = null
+
+interface VideoBounds {
+  readonly x: number
+  readonly y: number
+  readonly width: number
+  readonly height: number
+  readonly visible: boolean
+}
 
 const SUPPORTED_MEDIA_EXTENSIONS = new Set([
   '.mp4',
@@ -52,6 +64,28 @@ function isSafeExternalUrl(value: string): boolean {
   } catch {
     return false
   }
+}
+
+function isVideoBounds(value: unknown): value is VideoBounds {
+  if (typeof value !== 'object' || value === null) {
+    return false
+  }
+
+  const bounds = value as Record<string, unknown>
+
+  return (
+    typeof bounds.x === 'number' &&
+    Number.isFinite(bounds.x) &&
+    typeof bounds.y === 'number' &&
+    Number.isFinite(bounds.y) &&
+    typeof bounds.width === 'number' &&
+    Number.isFinite(bounds.width) &&
+    bounds.width > 0 &&
+    typeof bounds.height === 'number' &&
+    Number.isFinite(bounds.height) &&
+    bounds.height > 0 &&
+    typeof bounds.visible === 'boolean'
+  )
 }
 
 function createWindow(): BrowserWindow {
@@ -113,6 +147,239 @@ function createWindow(): BrowserWindow {
   }
 
   return mainWindow
+}
+
+function createVideoWindow(parentWindow: BrowserWindow): BrowserWindow {
+  const videoWindow = new BrowserWindow({
+    parent: parentWindow,
+    width: 640,
+    height: 360,
+    show: false,
+    frame: false,
+    focusable: false,
+    skipTaskbar: true,
+    resizable: false,
+    movable: false,
+    transparent: true,
+    backgroundColor: '#00000000',
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true,
+      webSecurity: true
+    }
+  })
+
+  videoWindow.setMenuBarVisibility(false)
+
+  videoWindow.on('page-title-updated', (event, title) => {
+    event.preventDefault()
+
+    if (title.startsWith('nexa-video-fullscreen-')) {
+      videoWindow.setFullScreen(!videoWindow.isFullScreen())
+    }
+  })
+
+  const videoHostHtml = `
+    <!doctype html>
+    <html>
+      <head>
+        <meta charset="UTF-8" />
+        <style>
+          html,
+          body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            background: transparent;
+          }
+        </style>
+      </head>
+      <body>
+        <script>
+          document.addEventListener('dblclick', () => {
+            document.title = "nexa-video-fullscreen-' + Date.now()
+          })
+        </script>
+      </body>
+    </html>
+  `
+
+  void videoWindow.loadURL(`data:text/html;charset=UTF-8,${encodeURIComponent(videoHostHtml)}`)
+
+  return videoWindow
+}
+
+function createVideoInputWindow(parentWindow: BrowserWindow): BrowserWindow {
+  const inputWindow = new BrowserWindow({
+    parent: parentWindow,
+    width: 640,
+    height: 360,
+    show: false,
+    frame: false,
+    focusable: true,
+    skipTaskbar: true,
+    resizable: false,
+    movable: false,
+    transparent: true,
+    backgroundColor: '#00000000',
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true,
+      webSecurity: true
+    }
+  })
+
+  inputWindow.setMenuBarVisibility(false)
+  inputWindow.setAlwaysOnTop(true, 'floating')
+
+  inputWindow.on('page-title-updated', (event, title) => {
+    event.preventDefault()
+
+    if (title.startsWith('nexa-video-activity-')) {
+      if (applicationWindow && !applicationWindow.isDestroyed()) {
+        applicationWindow.webContents.send('video:activity')
+      }
+
+      setTimeout(() => {
+        if (inputWindow.isDestroyed() || !applicationWindow || applicationWindow.isDestroyed()) {
+          return
+        }
+
+        if (applicationWindow.isFullScreen()) {
+          const contentBounds = applicationWindow.getContentBounds()
+          const videoBounds = {
+            x: contentBounds.x,
+            y: contentBounds.y,
+            width: contentBounds.width,
+            height: Math.max(1, contentBounds.height - 132)
+          }
+
+          if (embeddedVideoWindow && !embeddedVideoWindow.isDestroyed()) {
+            embeddedVideoWindow.setBounds(videoBounds)
+            embeddedVideoWindow.showInactive()
+          }
+
+          inputWindow.setBounds(videoBounds)
+        }
+
+        inputWindow.setAlwaysOnTop(true, 'screen-saver')
+        inputWindow.showInactive()
+        inputWindow.moveTop()
+        inputWindow.focus()
+      }, 50)
+
+      return
+    }
+
+    if (title.startsWith('nexa-video-exit-fullscreen-')) {
+      setApplicationFullscreen(false)
+      return
+    }
+
+    if (title.startsWith('nexa-video-fullscreen-')) {
+      toggleApplicationFullscreen()
+    }
+  })
+
+  const inputHostHtml = `
+    <!doctype html>
+    <html>
+      <head>
+        <meta charset="UTF-8" />
+        <style>
+          html,
+          body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            background: transparent;
+          }
+        </style>
+      </head>
+      <body>
+        <script>
+          document.addEventListener('dblclick', () => {
+            document.title = 'nexa-video-fullscreen-' + Date.now()
+          })
+
+          document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+              event.preventDefault()
+              document.title = 'nexa-video-exit-fullscreen-' + Date.now()
+              return
+            }
+              
+            if (event.key.toLowerCase() === 'f') {
+              event.preventDefault()
+              document.title = 'nexa-video-fullscreen-' + Date.now()
+            }
+          })
+
+          let lastMouseActivity = 0
+
+          document.addEventListener('mousemove', () => {
+            const now = Date.now()
+            
+            if (now - lastMouseActivity < 120) {
+              return
+            }
+              
+            lastMouseActivity = now
+            document.title = 'nexa-video-activity-' + now
+          })
+        </script>
+      </body>
+    </html>
+  `
+
+  void inputWindow.loadURL(`data:text/html;charset=UTF-8,${encodeURIComponent(inputHostHtml)}`)
+
+  return inputWindow
+}
+
+function getNativeWindowId(window: BrowserWindow): string {
+  const handle = window.getNativeWindowHandle()
+
+  if (handle.length >= 8) {
+    return handle.readBigUInt64LE(0).toString()
+  }
+
+  return handle.readUInt32LE(0).toString()
+}
+
+function setApplicationFullscreen(fullscreen: boolean): void {
+  if (!applicationWindow || applicationWindow.isDestroyed()) {
+    return
+  }
+
+  applicationWindow.setFullScreen(fullscreen)
+  applicationWindow.webContents.send('video:fullscreen-changed', fullscreen)
+
+  setTimeout(() => {
+    if (!videoInputWindow || videoInputWindow.isDestroyed()) {
+      return
+    }
+
+    videoInputWindow.setAlwaysOnTop(true, 'screen-saver')
+    videoInputWindow.showInactive()
+    videoInputWindow.moveTop()
+
+    if (fullscreen) {
+      videoInputWindow.focus()
+    }
+  }, 250)
+}
+
+function toggleApplicationFullscreen(): void {
+  if (!applicationWindow || applicationWindow.isDestroyed()) {
+    return
+  }
+
+  setApplicationFullscreen(!applicationWindow.isFullScreen())
 }
 
 async function findMediaFiles(directoryPath: string): Promise<string[]> {
@@ -333,6 +600,42 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
+  ipcMain.handle('video:set-bounds', (event, value: unknown) => {
+    if (
+      !applicationWindow ||
+      applicationWindow.isDestroyed() ||
+      !embeddedVideoWindow ||
+      embeddedVideoWindow.isDestroyed() ||
+      !videoInputWindow ||
+      videoInputWindow.isDestroyed() ||
+      event.sender !== applicationWindow.webContents ||
+      !isVideoBounds(value)
+    ) {
+      return
+    }
+
+    if (!value.visible) {
+      videoInputWindow.hide()
+      embeddedVideoWindow.hide()
+      return
+    }
+
+    const contentBounds = applicationWindow.getContentBounds()
+    const nextBounds = {
+      x: contentBounds.x + Math.round(value.x),
+      y: contentBounds.y + Math.round(value.y),
+      width: Math.max(1, Math.round(value.width)),
+      height: Math.max(1, Math.round(value.height))
+    }
+
+    embeddedVideoWindow.setBounds(nextBounds)
+    videoInputWindow.setBounds(nextBounds)
+
+    embeddedVideoWindow.showInactive()
+    videoInputWindow.showInactive()
+    videoInputWindow.moveTop()
+  })
+
   ipcMain.handle('media:open-paths', async (_event, value: unknown) => {
     return openDroppedMedia(value)
   })
@@ -345,8 +648,8 @@ app.whenReady().then(() => {
     await togglePause()
   })
 
-  ipcMain.handle('media:toggle-fullscreen', async () => {
-    await toggleFullscreen()
+  ipcMain.handle('media:toggle-fullscreen', () => {
+    toggleApplicationFullscreen()
   })
 
   ipcMain.handle('media:get-recent', async () => {
@@ -417,10 +720,15 @@ app.whenReady().then(() => {
     installUpdate()
   })
 
+  applicationWindow = createWindow()
+  embeddedVideoWindow = createVideoWindow(applicationWindow)
+  videoInputWindow = createVideoInputWindow(applicationWindow)
+
+  setMpvWindowId(getNativeWindowId(embeddedVideoWindow))
+
   startMpv()
 
-  const mainWindow = createWindow()
-  configureUpdater(mainWindow)
+  configureUpdater(applicationWindow)
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

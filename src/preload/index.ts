@@ -45,6 +45,14 @@ interface UpdateState {
   message?: string
 }
 
+interface VideoBounds {
+  x: number
+  y: number
+  width: number
+  height: number
+  visible: boolean
+}
+
 const nexaApi = Object.freeze({
   platform: process.platform,
   getPathForFile: (file: File): string => webUtils.getPathForFile(file),
@@ -63,6 +71,8 @@ const nexaApi = Object.freeze({
   seekBy: (seconds: number): Promise<void> => ipcRenderer.invoke('media:seek-by', seconds),
   setPlaybackSpeed: (speed: number): Promise<void> =>
     ipcRenderer.invoke('media:set-playback-speed', speed),
+  setVideoBounds: (bounds: VideoBounds): Promise<void> =>
+    ipcRenderer.invoke('video:set-bounds', bounds),
   setVolume: (volume: number): Promise<void> => ipcRenderer.invoke('media:set-volume', volume),
   getUpdateState: (): Promise<UpdateState> => ipcRenderer.invoke('updates:get-state'),
   checkForUpdates: (): Promise<UpdateState> => ipcRenderer.invoke('updates:check'),
@@ -77,6 +87,32 @@ const nexaApi = Object.freeze({
 
     return () => {
       ipcRenderer.removeListener('updates:state', handler)
+    }
+  },
+
+  onVideoActivity: (listener: () => void): (() => void) => {
+    const handler = (): void => {
+      listener()
+    }
+
+    ipcRenderer.on('video:activity', handler)
+
+    return () => {
+      ipcRenderer.removeListener('video:activity', handler)
+    }
+  },
+
+  onFullscreenChange: (listener: (fullscreen: boolean) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, fullscreen: unknown): void => {
+      if (typeof fullscreen === 'boolean') {
+        listener(fullscreen)
+      }
+    }
+
+    ipcRenderer.on('video:fullscreen-changed', handler)
+
+    return () => {
+      ipcRenderer.removeListener('video:fullscreen-changed', handler)
     }
   }
 })

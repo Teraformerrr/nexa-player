@@ -289,6 +289,40 @@ input::placeholder {
   padding: 26px;
 }
 
+.content--video {
+  display: flex;
+  overflow: hidden;
+  padding: 16px;
+}
+
+.content--video > .welcome-card,
+.content--video > .section-block {
+  display: none;
+}
+
+.video-surface {
+  position: relative;
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-large);
+  background: #000000;
+  box-shadow: var(--shadow-window);
+}
+
+.video-surface__placeholder {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-text-subtle);
+  font-size: 12px;
+}
+
 .welcome-card {
   position: relative;
   display: grid;
@@ -1173,6 +1207,123 @@ input::placeholder {
   margin-top: 4px;
   color: var(--color-text-subtle);
   font-size: 9px;
+}
+
+.player-bar {
+  transition:
+    inset 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    width 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-radius 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 320ms ease,
+    background 420ms ease,
+    box-shadow 420ms ease,
+    transform 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 280ms ease;
+}
+
+.app-shell--fullscreen {
+  grid-template: 'content' minmax(0, 1fr) / minmax(0, 1fr);
+  background: #000000;
+}
+
+.app-shell--fullscreen .topbar,
+.app-shell--fullscreen .sidebar,
+.app-shell--fullscreen .queue-panel {
+  display: none;
+}
+
+.app-shell--fullscreen .content {
+  position: fixed;
+  inset: 0;
+  padding: 0 0 132px;
+  overflow: hidden;
+  background: #000000;
+}
+
+.app-shell--fullscreen .video-surface {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.app-shell--fullscreen .player-bar {
+  position: fixed;
+  right: clamp(18px, 3vw, 52px);
+  bottom: clamp(18px, 3vh, 34px);
+  left: clamp(18px, 3vw, 52px);
+  z-index: 30;
+  min-height: 96px;
+  padding: 13px 18px;
+  overflow: hidden;
+  border: 1px solid rgba(198, 218, 255, 0.2);
+  border-radius: 30px;
+  background:
+    linear-gradient(135dge, rgba(34, 38, 63, 0.76), rgba(13, 17, 31, 0.62)),
+    rgba(12, 15, 28, 0.62);
+  box-shadow:
+    0 24px 70px rgba(0, 0, 0, 0.48),
+    inset 01px 0 rgba(255, 255, 255, 0.15),
+    inset 0 -1px 0 rgba(120, 104, 255, 0.12);
+  backdrop-filter: blur(34px) saturate(165);
+  -webkit-backdrop-filter: blur(34px) saturated(165%);
+  animation: fullscreen-controls-morph 560ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.app-shell--fullscreen .player-bar::before {
+  content: '';
+  position: absolute;
+  inset: -80% -20%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 25% 45%, rgba(120, 104, 255, 0.24), transparent 26%),
+    radial-gradient(circle at 72% 40%, rgba(66, 217, 209, 0.2), transparent 24%);
+  filter: blur(18px);
+  animation: fullscreen-liquid-flow 8s ease-in-out infinite alternate;
+}
+
+.app-shell--fullscreen .play-button {
+  box-shadow:
+    0 10px 30px rgba(120, 104, 255, 0.42),
+    0 0 24px rgba(66, 217, 209, 0.14);
+}
+
+@keyframes fullscreen-controls-morph {
+  from {
+    opacity: 0;
+    border-radius: 12px;
+    transform: translateY(38px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    border-radius: 30px;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fullscreen-liquid-flow {
+  from {
+    transform: translate3d(-3%, -2%, 0) rotate(-2deg);
+  }
+
+  to {
+    transform: translate3d(4%, 3%, 0) rotate(3deg);
+  }
+}
+
+.app-shell--fullscreen .content {
+  transition: padding-bottom 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+
+.app-shell--fullscreen.app-shell--controls-hidden .player-bar {
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(calc(100% + 48px)) scale(0.94);
 }
 
 @media (max-width: 760px) {

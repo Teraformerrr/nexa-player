@@ -12,6 +12,7 @@ const PROPERTY_TIMEOUT_MS = 2000
 
 let mpvProcess: ChildProcess | null = null
 let ipcQueue: Promise<void> = Promise.resolve()
+let mpvWindowId: string | null = null
 
 export interface PlaybackState {
   readonly active: boolean
@@ -145,6 +146,10 @@ function readProperty(name: string): Promise<unknown> {
   })
 }
 
+export function setMpvWindowId(windowId: string | null): void {
+  mpvWindowId = windowId
+}
+
 export function startMpv(): void {
   if (mpvProcess && mpvProcess.exitCode === null) {
     return
@@ -161,6 +166,7 @@ export function startMpv(): void {
     '--audio-channels=auto-safe',
     '--audio-normalize-downmix=yes',
     '--gapless-audio=weak',
+    ...(mpvWindowId ? [`--wid=${mpvWindowId}`] : []),
     `--input-ipc-server=${IPC_PIPE_PATH}`
   ]
 
