@@ -23,6 +23,8 @@ export interface OpenFolderResult {
   items?: string[]
 }
 
+export type VideoAspectRatio = 'auto' | '16:9' | '4:3' | '21:9' | '1:1'
+
 export type UpdateStatus =
   | 'idle'
   | 'unsupported'
@@ -64,6 +66,11 @@ export interface NexaApi {
   readonly getPlaybackState: () => Promise<PlaybackState>
   readonly seek: (position: number) => Promise<void>
   readonly seekBy: (seconds: number) => Promise<void>
+  readonly setVideoAspectRatio: (aspectRatio: VideoAspectRatio) => Promise<void>
+  readonly cycleVideoAspectRatio: () => Promise<VideoAspectRatio>
+  readonly onVideoAspectRatioChange: (
+    listener: (aspectRatio: VideoAspectRatio) => void
+  ) => () => void
   readonly setPlaybackSpeed: (speed: number) => Promise<void>
   readonly setVideoBounds: (bounds: VideoBounds) => Promise<void>
   readonly setVolume: (volume: number) => Promise<void>

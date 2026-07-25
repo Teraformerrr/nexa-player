@@ -1359,6 +1359,230 @@ input::placeholder {
   }
 }
 
+.aspect-ratio-control {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.aspect-ratio-control .icon-button--active {
+  color: var(--color-accent-strong);
+  background: rgba(120, 104, 255, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(120, 104, 255, 0.2);
+}
+
+.aspect-ratio-menu {
+  position: absolute;
+  right: -8px;
+  bottom: calc(100% + 14px);
+  z-index: 80;
+  width: 270px;
+  overflow: hidden;
+  border: 1px solid rgba(151, 142, 255, 0.22);
+  border-radius: 18px;
+  color: var(--color-text);
+  background:
+    linear-gradient(145deg, rgba(30, 32, 52, 0.96), rgba(13, 16, 29, 0.97)),
+    var(--color-surface);
+  box-shadow:
+    0 24px 70px rgba(0, 0, 0, 0.48),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(30px) saturate(145%);
+  animation: aspect-ratio-menu-enter 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: right bottom;
+}
+
+.aspect-ratio-menu__heading {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 15px 16px 13px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.aspect-ratio-menu__heading strong {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.aspect-ratio-menu__heading span {
+  color: var(--color-text-subtle);
+  font-size: 10px;
+}
+
+.aspect-ratio-menu__options {
+  display: grid;
+  gap: 3px;
+  padding: 7px;
+}
+
+.aspect-ratio-option {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 12px;
+  color: var(--color-text-muted);
+  text-align: left;
+  background: transparent;
+  transition:
+    color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.aspect-ratio-option:hover,
+.aspect-ratio-option--selected {
+  color: var(--color-text);
+  background: rgba(120, 104, 255, 0.12);
+}
+
+.aspect-ratio-option:hover {
+  transform: translateX(2px);
+}
+
+.aspect-ratio-option--selected {
+  color: var(--color-accent-strong);
+  box-shadow: inset 0 0 0 1px rgba(120, 104, 255, 0.12);
+}
+
+.aspect-ratio-option__preview {
+  display: block;
+  width: 32px;
+  height: 18px;
+  place-self: center;
+  border: 1.5px solid currentColor;
+  border-radius: 3px;
+  opacity: 0.8;
+}
+
+.aspect-ratio-option__preview[data-ratio='4:3'] {
+  width: 25px;
+  height: 19px;
+}
+
+.aspect-ratio-option__preview[data-ratio='21:9'] {
+  width: 34px;
+  height: 15px;
+}
+
+.aspect-ratio-option__preview[data-ratio='1:1'] {
+  width: 19px;
+  height: 19px;
+}
+
+.aspect-ratio-option__copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.aspect-ratio-option__copy strong {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.aspect-ratio-option__copy small {
+  overflow: hidden;
+  color: var(--color-text-subtle);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes aspect-ratio-menu-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.94);
+    filter: blur(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+/* Keep the aspect-ratio selector inside the renderer-owned control bar. */
+.aspect-ratio-menu {
+  position: fixed;
+  right: 292px;
+  bottom: 10px;
+  width: auto;
+  max-width: calc(100vw - 330px);
+  border-radius: 16px;
+}
+
+.aspect-ratio-menu__heading {
+  display: none;
+}
+
+.aspect-ratio-menu__options {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  padding: 6px;
+}
+
+.aspect-ratio-option {
+  display: flex;
+  width: 74px;
+  min-width: 74px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 7px 5px;
+  text-align: center;
+}
+
+.aspect-ratio-option:hover {
+  transform: translateY(-2px);
+}
+
+.aspect-ratio-option__preview {
+  flex: 0 0 auto;
+}
+
+.aspect-ratio-option__copy {
+  align-items: center;
+}
+
+.aspect-ratio-option__copy strong {
+  font-size: 10px;
+}
+
+.aspect-ratio-option__copy small {
+  display: none;
+}
+
+.aspect-ratio-option > svg {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+}
+
+.app-shell--fullscreen:has(.aspect-ratio-menu) .content {
+  padding-bottom: 240px;
+}
+
+.app-shell--fullscreen .aspect-ratio-menu {
+  right: clamp(286px, 17vw, 340px);
+  bottom: 142px;
+}
+
+.app-shell--fullscreen .player-bar {
+  overflow: visible;
+}
+
+.app-shell--fullscreen .player-bar::before {
+  clip-path: inset(0 round 30px);
+}
+
 @media (max-width: 900px) {
   .app-shell {
     grid-template:

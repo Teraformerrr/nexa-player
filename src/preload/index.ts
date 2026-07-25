@@ -27,6 +27,8 @@ interface PlaybackState {
   paused: boolean
 }
 
+type VideoAspectRatio = 'auto' | '16:9' | '4:3' | '21:9' | '1:1'
+
 type UpdateStatus =
   | 'idle'
   | 'unsupported'
@@ -73,6 +75,10 @@ const nexaApi = Object.freeze({
     ipcRenderer.invoke('media:set-playback-speed', speed),
   setVideoBounds: (bounds: VideoBounds): Promise<void> =>
     ipcRenderer.invoke('video:set-bounds', bounds),
+  setVideoAspectRatio: (aspectRatio: VideoAspectRatio): Promise<void> =>
+    ipcRenderer.invoke('media:set-aspect-ratio', aspectRatio),
+  cycleVideoAspectRatio: (): Promise<VideoAspectRatio> =>
+    ipcRenderer.invoke('media:cycle-aspect-ratio'),
   setVolume: (volume: number): Promise<void> => ipcRenderer.invoke('media:set-volume', volume),
   getUpdateState: (): Promise<UpdateState> => ipcRenderer.invoke('updates:get-state'),
   checkForUpdates: (): Promise<UpdateState> => ipcRenderer.invoke('updates:check'),
@@ -99,6 +105,18 @@ const nexaApi = Object.freeze({
 
     return () => {
       ipcRenderer.removeListener('video:activity', handler)
+    }
+  },
+
+  onVideoAspectRatioChange: (listener: (aspectRatio: VideoAspectRatio) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, aspectRatio: VideoAspectRatio): void => {
+      listener(aspectRatio)
+    }
+
+    ipcRenderer.on('video:aspect-ratio-changed', handler)
+
+    return () => {
+      ipcRenderer.removeListener('video:aspect-ratio-changed', handler)
     }
   },
 

@@ -268,6 +268,38 @@ export async function seekBy(seconds: number): Promise<void> {
   })
 }
 
+export type VideoAspectRatio = 'auto' | '16:9' | '4:3' | '21:9' | '1:1'
+
+const VIDEO_ASPECT_RATIOS = new Set<VideoAspectRatio>(['auto', '16:9', '4:3', '21:9', '1:1'])
+const VIDEO_ASPECT_RATIO_ORDER: readonly VideoAspectRatio[] = ['auto', '16:9', '4:3', '21:9', '1:1']
+
+let currentVideoAspectRatio: VideoAspectRatio = 'auto'
+
+export async function setVideoAspectRatio(aspectRatio: VideoAspectRatio): Promise<void> {
+  if (!mpvProcess || mpvProcess.exitCode !== null || !VIDEO_ASPECT_RATIOS.has(aspectRatio)) {
+    return
+  }
+
+  await queueIpcOperation(async () => {
+    await connectAndSend([
+      'set_property',
+      'video-aspect-override',
+      aspectRatio === 'auto' ? 'no' : aspectRatio
+    ])
+  })
+  currentVideoAspectRatio = aspectRatio
+}
+
+export async function cycleVideoAspectRatio(): Promise<VideoAspectRatio> {
+  const currentIndex = VIDEO_ASPECT_RATIO_ORDER.indexOf(currentVideoAspectRatio)
+  const nextAspectRatio =
+    VIDEO_ASPECT_RATIO_ORDER[(currentIndex + 1) % VIDEO_ASPECT_RATIO_ORDER.length]
+
+  await setVideoAspectRatio(nextAspectRatio)
+
+  return nextAspectRatio
+}
+
 export async function setPlaybackSpeed(speed: number): Promise<void> {
   if (!mpvProcess || mpvProcess.exitCode !== null || !Number.isFinite(speed)) {
     return

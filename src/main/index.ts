@@ -5,6 +5,7 @@ import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import {
   cycleAudioTrack,
   cycleSubtitleTrack,
+  cycleVideoAspectRatio,
   getPlaybackState,
   loadMedia,
   loadMediaQueue,
@@ -12,10 +13,12 @@ import {
   seekTo,
   setMpvWindowId,
   setPlaybackSpeed,
+  setVideoAspectRatio,
   setVolume,
   startMpv,
   stopMpv,
-  togglePause
+  togglePause,
+  type VideoAspectRatio
 } from './mpv'
 import {
   checkForUpdates,
@@ -274,6 +277,16 @@ function createVideoInputWindow(parentWindow: BrowserWindow): BrowserWindow {
       return
     }
 
+    if (title.startsWith('nexa-video-aspect-ratio-')) {
+      void cycleVideoAspectRatio().then((aspectRatio) => {
+        if (applicationWindow && !applicationWindow.isDestroyed()) {
+          applicationWindow.webContents.send('video:aspect-ratio-changed', aspectRatio)
+        }
+      })
+
+      return
+    }
+
     if (title.startsWith('nexa-video-exit-fullscreen-')) {
       setApplicationFullscreen(false)
       return
@@ -316,6 +329,12 @@ function createVideoInputWindow(parentWindow: BrowserWindow): BrowserWindow {
             if (event.key.toLowerCase() === 'f') {
               event.preventDefault()
               document.title = 'nexa-video-fullscreen-' + Date.now()
+            }
+
+            if (event.key.toLowerCase() === 'a') {
+              event.preventDefault()
+              document.title = 'nexa-video-aspect-ratio-' + Date.now()
+              return
             }
           })
 
@@ -686,6 +705,38 @@ app.whenReady().then(() => {
     }
 
     await seekBy(seconds)
+  })
+
+  ipcMain.handle('media:set-aspect-ratio', async (_event, aspectRatio: unknown) => {
+    const supportedAspectRatios: readonly VideoAspectRatio[] = [
+      'auto',
+      '16:9',
+      '4:3',
+      '21:9',
+      '1:1'
+    ]
+
+    if (
+      typeof aspectRatio !== 'string' ||
+      !supportedAspectRatios.includes(aspectRatio as VideoAspectRatio)
+    ) {
+      return
+    }
+
+    await setVideoAspectRatio(aspectRatio as VideoAspectRatio)
+    if (applicationWindow && !applicationWindow.isDestroyed()) {
+      applicationWindow.webContents.send('video:aspect-ratio-changed', aspectRatio)
+    }
+  })
+
+  ipcMain.handle('media:cycle-aspect-ratio', async () => {
+    const aspectRatio = await cycleVideoAspectRatio()
+
+    if (applicationWindow && !applicationWindow.isDestroyed()) {
+      applicationWindow.webContents.send('video:aspect-ratio-changed', aspectRatio)
+    }
+
+    return aspectRatio
   })
 
   ipcMain.handle('media:set-playback-speed', async (_event, speed: unknown) => {

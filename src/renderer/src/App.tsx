@@ -24,7 +24,6 @@ import {
   Settings,
   SkipBack,
   SkipForward,
-  SlidersHorizontal,
   Sparkles,
   Video
 } from 'lucide-react'
@@ -33,6 +32,7 @@ import PlaybackTimeline from './components/PlaybackTimeline'
 import VolumeControl from './components/VolumeControl'
 import PlaybackSpeedControl from './components/PlaybackSpeedControl'
 import nexaLogo from './assets/nexa-logo.png'
+import AspectRatioControl from './components/AspectRatioControl'
 
 interface NavigationItem {
   readonly label: string
@@ -823,9 +823,7 @@ function App(): React.JSX.Element {
             <Languages aria-hidden="true" size={19} />
           </IconButton>
 
-          <IconButton label="Video settings">
-            <SlidersHorizontal aria-hidden="true" size={19} />
-          </IconButton>
+          <AspectRatioControl enabled={currentMediaName !== null && isVideoMedia} />
 
           <IconButton label="Picture in picture">
             <PictureInPicture2 aria-hidden="true" size={19} />
