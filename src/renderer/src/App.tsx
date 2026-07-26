@@ -33,21 +33,24 @@ import VolumeControl from './components/VolumeControl'
 import PlaybackSpeedControl from './components/PlaybackSpeedControl'
 import nexaLogo from './assets/nexa-logo.png'
 import AspectRatioControl from './components/AspectRatioControl'
+import NavigationPage from './components/NavigationPage'
 
 interface NavigationItem {
   readonly label: string
   readonly icon: LucideIcon
-  readonly active?: boolean
 }
 
 interface RecentMediaItem {
   readonly path: string
   readonly name: string
   readonly openedAt: number
+  readonly position: number
+  readonly duration: number
+  readonly completed: boolean
 }
 
 const libraryItems: readonly NavigationItem[] = [
-  { label: 'Home', icon: House, active: true },
+  { label: 'Home', icon: House },
   { label: 'Videos', icon: Video },
   { label: 'Music', icon: Music2 },
   { label: 'Playlists', icon: ListVideo },
@@ -60,14 +63,23 @@ const discoveryItems: readonly NavigationItem[] = [
   { label: 'Connected services', icon: Plug }
 ]
 
-const VIDEO_FILE_PATTERN = /\.(mp4|mkv|webm|mov|avi|m4v)$/i
+const VIDEO_FILE_PATTERN = /\.(mp4|mkv|webm|mov|avi|m4v|m3u8|mpd)$/i
 
-function SidebarItem({ label, icon: Icon, active = false }: NavigationItem): React.JSX.Element {
+function SidebarItem({
+  label,
+  icon: Icon,
+  active,
+  onSelect
+}: NavigationItem & {
+  readonly active: boolean
+  readonly onSelect: () => void
+}): React.JSX.Element {
   return (
     <button
       className={`sidebar-item${active ? ' sidebar-item--active' : ''}`}
       type="button"
       aria-current={active ? 'page' : undefined}
+      onClick={onSelect}
     >
       <Icon aria-hidden="true" size={19} strokeWidth={1.8} />
       <span>{label}</span>
@@ -101,6 +113,7 @@ function IconButton({
 
 function App(): React.JSX.Element {
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [activePage, setActivePage] = useState('Home')
   const [currentMediaName, setCurrentMediaName] = useState<string | null>(null)
   const [mediaMessage, setMediaMessage] = useState('Open a file to begin')
   const [openingMedia, setOpeningMedia] = useState(false)
@@ -120,6 +133,7 @@ function App(): React.JSX.Element {
 
   useEffect(() => {
     let cancelled = false
+
     const loadRecentMedia = async (): Promise<void> => {
       try {
         const items = await window.nexa.getRecentMedia()
@@ -136,17 +150,26 @@ function App(): React.JSX.Element {
 
     void loadRecentMedia()
 
+    const refreshTimer = window.setInterval(() => {
+      void loadRecentMedia()
+    }, 5000)
+
     return () => {
       cancelled = true
+      window.clearInterval(refreshTimer)
     }
   }, [])
 
   const videoSurfaceRef = useRef<HTMLElement | null>(null)
   const isVideoMedia = currentMediaName !== null && VIDEO_FILE_PATTERN.test(currentMediaName)
+  const continueWatchingItems = recentMedia.filter(
+    (item) => !item.completed && item.duration > 0 && item.position >= 10
+  )
+  const showingVideo = isVideoMedia && activePage === 'Home'
 
   useEffect(() => {
     const videoSurface = videoSurfaceRef.current
-    const visible = isVideoMedia && !settingsOpen
+    const visible = showingVideo && !settingsOpen
 
     if (!videoSurface || !visible) {
       void window.nexa.setVideoBounds({
@@ -192,7 +215,7 @@ function App(): React.JSX.Element {
         visible: false
       })
     }
-  }, [isVideoMedia, settingsOpen])
+  }, [showingVideo, settingsOpen])
 
   const showFullscreenControls = useCallback((): void => {
     setFullscreenControlsVisible(true)
@@ -534,13 +557,27 @@ function App(): React.JSX.Element {
           <p className="sidebar-heading">Library</p>
 
           {libraryItems.map((item) => (
-            <SidebarItem key={item.label} {...item} />
+            <SidebarItem
+              key={item.label}
+              {...item}
+              active={activePage === item.label}
+              onSelect={() => {
+                setActivePage(item.label)
+              }}
+            />
           ))}
 
           <p className="sidebar-heading sidebar-heading--spaced">Discover</p>
 
           {discoveryItems.map((item) => (
-            <SidebarItem key={item.label} {...item} />
+            <SidebarItem
+              key={item.label}
+              {...item}
+              active={activePage === item.label}
+              onSelect={() => {
+                setActivePage(item.label)
+              }}
+            />
           ))}
         </nav>
 
@@ -551,132 +588,162 @@ function App(): React.JSX.Element {
         </button>
       </aside>
 
-      <main className={`content${isVideoMedia ? ' content--video' : ''}`}>
-        {isVideoMedia && (
-          <section
-            className="video-surface"
-            ref={videoSurfaceRef}
-            onDoubleClick={() => {
-              void window.nexa.toggleFullscreen()
-            }}
-            aria-label={`Video playback: ${currentMediaName ?? 'Selected video'}`}
-          >
-            <div className="video-surface__placeholder" aria-hidden="true">
-              <Video size={32} />
-              <span>Preparing video...</span>
-            </div>
-          </section>
-        )}
-
-        <section className="welcome-card" aria-labelledby="welcome-title">
-          <div className="welcome-glow welcome-glow--one" />
-          <div className="welcome-glow welcome-glow--two" />
-
-          <div className="welcome-visual" aria-hidden="true">
-            <div className="visual-orbit visual-orbit--outer" />
-            <div className="visual-orbit visual-orbit--inner" />
-
-            <div className="visual-disc">
-              <span className="visual-disc__shine" />
-
-              <span className="visual-disc__center">
-                <Play size={34} fill="currentColor" />
-              </span>
-            </div>
-          </div>
-
-          <div className="welcome-copy">
-            <span className="eyebrow">
-              <Sparkles aria-hidden="true" size={15} />
-              Your media, beautifully organised
-            </span>
-
-            <h1 id="welcome-title">Welcome to Nexa Player</h1>
-
-            <p>Open a video, play your music, or build a library that feels entirely yours.</p>
-
-            <div className="welcome-actions">
-              <button
-                className="hero-button hero-button--primary"
-                type="button"
-                onClick={() => void openMedia()}
-                disabled={openingMedia}
+      <main className={`content${showingVideo ? ' content--video' : ''}`}>
+        {activePage === 'Home' ? (
+          <>
+            {showingVideo && (
+              <section
+                className="video-surface"
+                ref={videoSurfaceRef}
+                onDoubleClick={() => {
+                  void window.nexa.toggleFullscreen()
+                }}
+                aria-label={`Video playback: ${currentMediaName ?? 'Selected video'}`}
               >
-                <FilePlus2 aria-hidden="true" size={19} />
-                {openingMedia ? 'Opening…' : 'Open a media file'}
-              </button>
+                <div className="video-surface__placeholder" aria-hidden="true">
+                  <Video size={32} />
+                  <span>Preparing video...</span>
+                </div>
+              </section>
+            )}
 
-              <button
-                className="hero-button"
-                type="button"
-                onClick={() => void openMediaFolder()}
-                disabled={openingMedia}
-              >
-                <FolderOpen aria-hidden="true" size={19} />
-                {openingMedia ? 'Opening...' : 'Add a folder'}
-              </button>
-            </div>
-          </div>
-        </section>
+            <section className="welcome-card" aria-labelledby="welcome-title">
+              <div className="welcome-glow welcome-glow--one" />
+              <div className="welcome-glow welcome-glow--two" />
 
-        <section className="section-block" aria-labelledby="continue-title">
-          <div className="section-header">
-            <div>
-              <p className="section-kicker">Pick up where you left off</p>
-              <h2 id="continue-title">Continue watching</h2>
-            </div>
+              <div className="welcome-visual" aria-hidden="true">
+                <div className="visual-orbit visual-orbit--outer" />
+                <div className="visual-orbit visual-orbit--inner" />
 
-            <button className="text-button" type="button">
-              View all
-              <ChevronRight aria-hidden="true" size={17} />
-            </button>
-          </div>
+                <div className="visual-disc">
+                  <span className="visual-disc__shine" />
 
-          {recentMedia.length > 0 ? (
-            <div className="recent-media-list" aria-label="recent media">
-              {recentMedia.slice(0, 4).map((item) => (
-                <button
-                  className="recent-media-card"
-                  type="button"
-                  key={item.path}
-                  title={item.path}
-                  disabled={openingMedia}
-                  onClick={() => {
-                    void openRecentMedia(item)
-                  }}
-                >
-                  <span className="recent-media-card__icon">
-                    <Play aria-hidden="true" size={18} fill="currentColor" />
+                  <span className="visual-disc__center">
+                    <Play size={34} fill="currentColor" />
                   </span>
+                </div>
+              </div>
 
-                  <span className="recent-media-card__copy">
-                    <strong>{item.name}</strong>
-                    <small>
-                      Opened{' '}
-                      {new Date(item.name).toLocaleTimeString([], {
-                        dateStyle: 'medium',
-                        timeStyle: 'short'
-                      })}
-                    </small>
-                  </span>
+              <div className="welcome-copy">
+                <span className="eyebrow">
+                  <Sparkles aria-hidden="true" size={15} />
+                  Your media, beautifully organised
+                </span>
 
+                <h1 id="welcome-title">Welcome to Nexa Player</h1>
+
+                <p>Open a video, play your music, or build a library that feels entirely yours.</p>
+
+                <div className="welcome-actions">
+                  <button
+                    className="hero-button hero-button--primary"
+                    type="button"
+                    onClick={() => void openMedia()}
+                    disabled={openingMedia}
+                  >
+                    <FilePlus2 aria-hidden="true" size={19} />
+                    {openingMedia ? 'Opening…' : 'Open a media file'}
+                  </button>
+
+                  <button
+                    className="hero-button"
+                    type="button"
+                    onClick={() => void openMediaFolder()}
+                    disabled={openingMedia}
+                  >
+                    <FolderOpen aria-hidden="true" size={19} />
+                    {openingMedia ? 'Opening...' : 'Add a folder'}
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <section className="section-block" aria-labelledby="continue-title">
+              <div className="section-header">
+                <div>
+                  <p className="section-kicker">Pick up where you left off</p>
+                  <h2 id="continue-title">Continue watching</h2>
+                </div>
+
+                <button className="text-button" type="button">
+                  View all
                   <ChevronRight aria-hidden="true" size={17} />
                 </button>
-              ))}
-            </div>
-          ) : (
-            <div className="empty-library">
-              <span className="empty-library__icon">
-                <History aria-hidden="true" size={23} />
-              </span>
-
-              <div>
-                <h3>Your recent media will appear here</h3>
-                <p>Nexa Player will remember media after you open your first file</p>
               </div>
-            </div>
-          )}
-        </section>
+
+              {continueWatchingItems.length > 0 ? (
+                <div className="recent-media-list" aria-label="recent media">
+                  {continueWatchingItems.slice(0, 4).map((item) => (
+                    <button
+                      className="recent-media-card"
+                      type="button"
+                      key={item.path}
+                      title={item.path}
+                      disabled={openingMedia}
+                      onClick={() => {
+                        void openRecentMedia(item)
+                      }}
+                    >
+                      <span className="recent-media-card__icon">
+                        <Play aria-hidden="true" size={18} fill="currentColor" />
+                      </span>
+
+                      <span className="recent-media-card__copy">
+                        <strong>{item.name}</strong>
+                        <small>
+                          {Math.min(100, Math.round((item.position / item.duration) * 100))}%
+                          watched
+                        </small>
+
+                        <span className="recent-media-card__progress" aria-hidden="true">
+                          <span
+                            style={{
+                              width: `${Math.min(100, Math.max(0, (item.position / item.duration) * 100))}%`
+                            }}
+                          />
+                        </span>
+                      </span>
+
+                      <ChevronRight aria-hidden="true" size={17} />
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-library">
+                  <span className="empty-library__icon">
+                    <History aria-hidden="true" size={23} />
+                  </span>
+
+                  <div>
+                    <h3>Your recent media will appear here</h3>
+                    <p>Nexa Player will remember media after you open your first file</p>
+                  </div>
+                </div>
+              )}
+            </section>
+          </>
+        ) : (
+          <NavigationPage
+            page={activePage}
+            recentMedia={recentMedia}
+            openingMedia={openingMedia}
+            onOpenMedia={() => {
+              void openMedia()
+            }}
+            onOpenFolder={() => {
+              void openMediaFolder()
+            }}
+            onOpenRecent={(item) => {
+              void openRecentMedia(item)
+            }}
+            onStreamOpened={(name) => {
+              setCurrentMediaName(name)
+              setMediaMessage('Playing network stream with mpv')
+              setQueueItems([name])
+              setIsPaused(false)
+            }}
+          />
+        )}
       </main>
 
       <aside className="queue-panel" aria-label="Playback queue">

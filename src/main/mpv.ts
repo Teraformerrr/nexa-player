@@ -19,6 +19,7 @@ export interface PlaybackState {
   readonly position: number
   readonly duration: number
   readonly paused: boolean
+  readonly path: string | null
 }
 
 interface MpvResponse {
@@ -184,15 +185,29 @@ export function startMpv(): void {
   })
 }
 
-export async function loadMedia(filePath: string): Promise<void> {
+export async function loadMedia(filePath: string, startPosition = 0): Promise<void> {
   startMpv()
 
   await queueIpcOperation(async () => {
+    if (startPosition > 0 && Number.isFinite(startPosition)) {
+      await connectAndSend([
+        'loadfile',
+        filePath,
+        'replace',
+        -1,
+        `start=${Math.max(0, startPosition)}`
+      ])
+      return
+    }
+
     await connectAndSend(['loadfile', filePath, 'replace'])
   })
 }
 
-export async function loadMediaQueue(filePaths: readonly string[]): Promise<void> {
+export async function loadMediaQueue(
+  filePaths: readonly string[],
+  startPosition = 0
+): Promise<void> {
   if (filePaths.length === 0) {
     return
   }
@@ -200,7 +215,17 @@ export async function loadMediaQueue(filePaths: readonly string[]): Promise<void
   startMpv()
 
   await queueIpcOperation(async () => {
-    await connectAndSend(['loadfile', filePaths[0], 'replace'])
+    if (startPosition > 0 && Number.isFinite(startPosition)) {
+      await connectAndSend([
+        'loadfile',
+        filePaths[0],
+        'replace',
+        -1,
+        `start=${Math.max(0, startPosition)}`
+      ])
+    } else {
+      await connectAndSend(['loadfile', filePaths[0], 'replace'])
+    }
 
     for (const filePath of filePaths.slice(1)) {
       await connectAndSend(['loadfile', filePath, 'append-play'])
@@ -330,7 +355,8 @@ export async function getPlaybackState(): Promise<PlaybackState> {
       active: false,
       position: 0,
       duration: 0,
-      paused: false
+      paused: false,
+      path: null
     }
   }
 
@@ -339,12 +365,14 @@ export async function getPlaybackState(): Promise<PlaybackState> {
       const position = await readProperty('time-pos')
       const duration = await readProperty('duration')
       const paused = await readProperty('pause')
+      const path = await readProperty('path')
 
       return {
         active: typeof duration === 'number' && duration > 0,
         position: typeof position === 'number' ? position : 0,
         duration: typeof duration === 'number' ? duration : 0,
-        paused: typeof paused === 'boolean' ? paused : false
+        paused: typeof paused === 'boolean' ? paused : false,
+        path: typeof path === 'string' && path.length > 0 ? path : null
       }
     } catch (error) {
       console.error('Failed to read mpv playback state:', error)
@@ -353,7 +381,8 @@ export async function getPlaybackState(): Promise<PlaybackState> {
         active: false,
         position: 0,
         duration: 0,
-        paused: false
+        paused: false,
+        path: null
       }
     }
   })

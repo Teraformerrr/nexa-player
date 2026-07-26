@@ -7,6 +7,9 @@ export interface RecentMediaItem {
   path: string
   name: string
   openedAt: number
+  position: number
+  duration: number
+  completed: boolean
 }
 
 export interface OpenMediaResult {
@@ -43,6 +46,11 @@ export interface UpdateState {
   message?: string
 }
 
+export interface OpenStreamResult {
+  status: 'opened' | 'invalid' | 'error'
+  name?: string
+}
+
 export interface VideoBounds {
   x: number
   y: number
@@ -58,6 +66,7 @@ export interface NexaApi {
   readonly openMedia: () => Promise<OpenMediaResult>
   readonly openDroppedMedia: (filePaths: string[]) => Promise<OpenMediaResult>
   readonly openMediaFolder: () => Promise<OpenFolderResult>
+  readonly openNetworkStream: (url: string) => Promise<OpenStreamResult>
   readonly openSoundSettings: () => Promise<void>
   readonly togglePause: () => Promise<void>
   readonly toggleFullscreen: () => Promise<void>

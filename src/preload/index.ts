@@ -11,6 +11,9 @@ interface RecentMediaItem {
   path: string
   name: string
   openedAt: number
+  position: number
+  duration: number
+  completed: boolean
 }
 
 interface OpenFolderResult {
@@ -47,6 +50,10 @@ interface UpdateState {
   message?: string
 }
 
+interface OpenStreamResult {
+  status: 'opened' | 'invalid' | 'error'
+  name?: string
+}
 interface VideoBounds {
   x: number
   y: number
@@ -63,6 +70,8 @@ const nexaApi = Object.freeze({
   openDroppedMedia: (filePaths: string[]): Promise<OpenMediaResult> =>
     ipcRenderer.invoke('media:open-paths', filePaths),
   openMediaFolder: (): Promise<OpenFolderResult> => ipcRenderer.invoke('media:open-folder'),
+  openNetworkStream: (url: string): Promise<OpenStreamResult> =>
+    ipcRenderer.invoke('media:open-stream', url),
   openSoundSettings: (): Promise<void> => ipcRenderer.invoke('system:open-sound-settings'),
   togglePause: (): Promise<void> => ipcRenderer.invoke('media:toggle-pause'),
   toggleFullscreen: (): Promise<void> => ipcRenderer.invoke('media:toggle-fullscreen'),

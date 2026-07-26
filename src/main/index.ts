@@ -28,13 +28,21 @@ import {
   installUpdate
 } from './updater'
 import icon from '../../resources/icon.png?asset'
-import { addRecentMedia, getRecentMedia } from './mediaHistory'
+import {
+  addRecentMedia,
+  getRecentMedia,
+  getResumePosition,
+  savePlaybackProgress
+} from './mediaHistory'
 
 const APP_ID = 'com.nexaplayer.desktop'
 
 let applicationWindow: BrowserWindow | null = null
 let embeddedVideoWindow: BrowserWindow | null = null
 let videoInputWindow: BrowserWindow | null = null
+let lastProgressSaveAt = 0
+
+const PROGRESS_SAVE_INTERVAL_MS = 5000
 
 interface VideoBounds {
   readonly x: number
@@ -444,6 +452,25 @@ async function findMediaFiles(directoryPath: string): Promise<string[]> {
   return mediaFiles
 }
 
+async function loadLocalMediaWithResume(filePaths: readonly string[]): Promise<void> {
+  if (filePaths.length === 0) {
+    return
+  }
+
+  const firstFilePath = filePaths[0]
+  const resumePosition = await getResumePosition(firstFilePath)
+
+  if (filePaths.length === 1) {
+    await loadMedia(firstFilePath, resumePosition)
+  } else {
+    await loadMediaQueue(filePaths, resumePosition)
+  }
+
+  await addRecentMedia(firstFilePath, basename(firstFilePath))
+
+  lastProgressSaveAt = 0
+}
+
 async function openDroppedMedia(value: unknown): Promise<{
   status: 'opened' | 'error'
   name?: string
@@ -485,13 +512,7 @@ async function openDroppedMedia(value: unknown): Promise<{
   }
 
   try {
-    if (mediaFiles.length === 1) {
-      await loadMedia(mediaFiles[0])
-    } else {
-      await loadMediaQueue(mediaFiles)
-    }
-
-    await addRecentMedia(mediaFiles[0], basename(mediaFiles[0]))
+    await loadLocalMediaWithResume(mediaFiles)
 
     return {
       status: 'opened',
@@ -547,13 +568,7 @@ async function openMediaFile(): Promise<{
   const filePaths = result.filePaths
 
   try {
-    if (filePaths.length === 1) {
-      await loadMedia(filePaths[0])
-    } else {
-      await loadMediaQueue(filePaths)
-    }
-
-    await addRecentMedia(filePaths[0], basename(filePaths[0]))
+    await loadLocalMediaWithResume(filePaths)
 
     return {
       status: 'opened',
@@ -596,9 +611,7 @@ async function openMediaFolder(): Promise<{
       }
     }
 
-    await loadMediaQueue(mediaFiles)
-
-    await addRecentMedia(mediaFiles[0], basename(mediaFiles[0]))
+    await loadLocalMediaWithResume(mediaFiles)
 
     return {
       status: 'opened',
@@ -663,6 +676,37 @@ app.whenReady().then(() => {
 
   ipcMain.handle('media:open-folder', openMediaFolder)
 
+  ipcMain.handle('media:open-stream', async (_event, value: unknown) => {
+    if (typeof value !== 'string' || value.length === 0 || value.length > 4096) {
+      return { status: 'invalid' as const }
+    }
+
+    try {
+      const streamUrl = new URL(value.trim())
+      const supportedProtocols = new Set(['http:', 'https:', 'rtsp:', 'rtmp:'])
+
+      if (
+        !supportedProtocols.has(streamUrl.protocol) ||
+        streamUrl.username.length > 0 ||
+        streamUrl.password.length > 0
+      ) {
+        return { status: 'invalid' as const }
+      }
+
+      await loadMedia(streamUrl.href)
+
+      const streamFileName = basename(streamUrl.pathname)
+
+      return {
+        status: 'opened' as const,
+        name: streamFileName || streamUrl.hostname || 'Network stream'
+      }
+    } catch (error) {
+      console.error('Failed to open network stream:', error)
+      return { status: 'error' as const }
+    }
+  })
+
   ipcMain.handle('media:toggle-pause', async () => {
     await togglePause()
   })
@@ -688,7 +732,26 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle('media:get-playback-state', async () => {
-    return getPlaybackState()
+    const playbackState = await getPlaybackState()
+    const now = Date.now()
+
+    if (
+      playbackState.active &&
+      playbackState.path &&
+      playbackState.duration > 0 &&
+      now - lastProgressSaveAt >= PROGRESS_SAVE_INTERVAL_MS
+    ) {
+      lastProgressSaveAt = now
+
+      void savePlaybackProgress(
+        playbackState.path,
+        playbackState.position,
+        playbackState.duration
+      ).catch((error) => {
+        console.error('Failed to save playback progress:', error)
+      })
+    }
+    return playbackState
   })
 
   ipcMain.handle('media:seek', async (_event, position: unknown) => {
