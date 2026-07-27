@@ -69,6 +69,17 @@ const nexaApi = Object.freeze({
   openMedia: (): Promise<OpenMediaResult> => ipcRenderer.invoke('media:open-file'),
   openDroppedMedia: (filePaths: string[]): Promise<OpenMediaResult> =>
     ipcRenderer.invoke('media:open-paths', filePaths),
+  onExternalMediaOpened: (listener: (result: OpenMediaResult) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, result: OpenMediaResult): void => {
+      listener(result)
+    }
+
+    ipcRenderer.on('media:opened-externally', handler)
+
+    return () => {
+      ipcRenderer.removeListener('media:opened-externally', handler)
+    }
+  },
   openMediaFolder: (): Promise<OpenFolderResult> => ipcRenderer.invoke('media:open-folder'),
   openNetworkStream: (url: string): Promise<OpenStreamResult> =>
     ipcRenderer.invoke('media:open-stream', url),

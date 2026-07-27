@@ -34,6 +34,7 @@ import PlaybackSpeedControl from './components/PlaybackSpeedControl'
 import nexaLogo from './assets/nexa-logo.png'
 import AspectRatioControl from './components/AspectRatioControl'
 import NavigationPage from './components/NavigationPage'
+import AudioNowPlaying from './components/AudioNowPlaying'
 
 interface NavigationItem {
   readonly label: string
@@ -63,7 +64,8 @@ const discoveryItems: readonly NavigationItem[] = [
   { label: 'Connected services', icon: Plug }
 ]
 
-const VIDEO_FILE_PATTERN = /\.(mp4|mkv|webm|mov|avi|m4v|m3u8|mpd)$/i
+const VIDEO_FILE_PATTERN = /\.(mp4|mkv|webm|mov|avi|m4v|ts|m2ts|mts|mpg|mpeg|wmv|flv|ogv|3gp)$/i
+const AUDIO_FILE_PATTERN = /\.(mp3|flac|wav|m4a|aac|ogg|opus|wma)$/i
 
 function SidebarItem({
   label,
@@ -132,6 +134,32 @@ function App(): React.JSX.Element {
   }, [])
 
   useEffect(() => {
+    return window.nexa.onExternalMediaOpened((result) => {
+      if (result.status !== 'opened') {
+        return
+      }
+
+      const items = result.items ?? []
+      const firstItem = items[0] ?? result.name ?? 'Selected media'
+
+      setQueueItems(items.length > 0 ? items : [firstItem])
+      setCurrentMediaName(firstItem)
+      setMediaMessage(items.length > 1 ? `Playing 1 of ${items.length}` : 'Playing with mpv')
+      setIsPaused(false)
+      setActivePage('Home')
+
+      void window.nexa
+        .getRecentMedia()
+        .then((recentItems) => {
+          setRecentMedia(recentItems)
+        })
+        .catch(() => {
+          // Keep current history if refreshing fails
+        })
+    })
+  }, [])
+
+  useEffect(() => {
     let cancelled = false
 
     const loadRecentMedia = async (): Promise<void> => {
@@ -162,10 +190,12 @@ function App(): React.JSX.Element {
 
   const videoSurfaceRef = useRef<HTMLElement | null>(null)
   const isVideoMedia = currentMediaName !== null && VIDEO_FILE_PATTERN.test(currentMediaName)
+  const isAudioMedia = currentMediaName !== null && AUDIO_FILE_PATTERN.test(currentMediaName)
   const continueWatchingItems = recentMedia.filter(
     (item) => !item.completed && item.duration > 0 && item.position >= 10
   )
   const showingVideo = isVideoMedia && activePage === 'Home'
+  const showingAudio = isAudioMedia && activePage === 'Home'
 
   useEffect(() => {
     const videoSurface = videoSurfaceRef.current
@@ -588,7 +618,9 @@ function App(): React.JSX.Element {
         </button>
       </aside>
 
-      <main className={`content${showingVideo ? ' content--video' : ''}`}>
+      <main
+        className={`content${showingVideo ? ' content--video' : ''}${showingAudio ? ' content--audio' : ''}`}
+      >
         {activePage === 'Home' ? (
           <>
             {showingVideo && (
@@ -605,6 +637,19 @@ function App(): React.JSX.Element {
                   <span>Preparing video...</span>
                 </div>
               </section>
+            )}
+
+            {showingAudio && currentMediaName && (
+              <AudioNowPlaying
+                fileName={currentMediaName}
+                paused={isPaused}
+                onTogglePause={() => {
+                  void togglePause()
+                }}
+                onEnterFullscreen={() => {
+                  void window.nexa.toggleFullscreen()
+                }}
+              />
             )}
 
             <section className="welcome-card" aria-labelledby="welcome-title">

@@ -20,6 +20,41 @@ extraResources:
     filter:
       - '**/*'
 
+fileAssociations:
+  - ext:
+      - mp4
+      - mkv
+      - webm
+      - mov
+      - avi
+      - m4v
+      - ts
+      - m2ts
+      - mts
+      - mpg
+      - mpeg
+      - wmv
+      - flv
+      - ogv
+      - 3gp
+    name: Nexa Player Video
+    description: Video media supported by Nexa Player
+    role: viewer
+    icon: build/icon.ico
+  - ext: 
+      - mp3
+      - flac
+      - wav
+      - m4a
+      - aac
+      - ogg
+      - opus
+      - wma
+    name: Nexa Player Audio
+    description: Audio media supported by Nexa Player
+    role: viewer
+    icon: build/icon.ico
+
 win:
   target:
     - target: nsis

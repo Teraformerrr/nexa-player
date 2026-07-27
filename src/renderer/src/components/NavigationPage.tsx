@@ -94,8 +94,8 @@ const pageDetails: Record<string, PageDetails> = {
   }
 }
 
-const VIDEO_PATTERN = /\.(mp4|mkv|webm|mov|avi|m4v)$/i
-const AUDIO_PATTERN = /\.(mp3|flac|wav|m4a|aac|ogg|opus)$/i
+const VIDEO_PATTERN = /\.(mp4|mkv|webm|mov|avi|m4v|ts|m2ts|mts|mpg|mpeg|wmv|flv|ogv|3gp)$/i
+const AUDIO_PATTERN = /\.(mp3|flac|wav|m4a|aac|ogg|opus|wma)$/i
 
 function NavigationPage({
   page,

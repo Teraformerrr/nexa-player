@@ -65,6 +65,7 @@ export interface NexaApi {
   readonly getRecentMedia: () => Promise<RecentMediaItem[]>
   readonly openMedia: () => Promise<OpenMediaResult>
   readonly openDroppedMedia: (filePaths: string[]) => Promise<OpenMediaResult>
+  onExternalMediaOpened(listener: (result: openMediaResult) => void): () => void
   readonly openMediaFolder: () => Promise<OpenFolderResult>
   readonly openNetworkStream: (url: string) => Promise<OpenStreamResult>
   readonly openSoundSettings: () => Promise<void>

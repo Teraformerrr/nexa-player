@@ -40,6 +40,32 @@ const APP_ID = 'com.nexaplayer.desktop'
 let applicationWindow: BrowserWindow | null = null
 let embeddedVideoWindow: BrowserWindow | null = null
 let videoInputWindow: BrowserWindow | null = null
+
+const hasSingleInstanceLock = app.requestSingleInstanceLock()
+
+if (!hasSingleInstanceLock) {
+  app.quit()
+}
+
+if (hasSingleInstanceLock) {
+  app.on('second-instance', (_event, commandLine) => {
+    if (applicationWindow && !applicationWindow.isDestroyed()) {
+      if (applicationWindow.isMinimized()) {
+        applicationWindow.restore()
+      }
+
+      applicationWindow.show()
+      applicationWindow.focus()
+    }
+
+    const mediaPaths = getMediaPathsFromArguments(commandLine)
+
+    if (mediaPaths.length > 0) {
+      void openExternalMediaPaths(mediaPaths)
+    }
+  })
+}
+
 let lastProgressSaveAt = 0
 
 const PROGRESS_SAVE_INTERVAL_MS = 5000
@@ -57,16 +83,38 @@ const SUPPORTED_MEDIA_EXTENSIONS = new Set([
   '.mkv',
   '.webm',
   '.mov',
-  '.avi',
+  ',avi',
   '.m4v',
-  '.mp3',
+  '.ts',
+  '.m2ts',
+  '.mts',
+  '.mpg',
+  '.mpeg',
+  '.wmv',
+  '.flv',
+  '.ogv',
+  '.3gp',
   '.flac',
   '.wav',
   '.m4a',
-  '.aac',
+  '.acc',
   '.ogg',
-  '.opus'
+  '.opus',
+  '.wma'
 ])
+
+function getMediaPathsFromArguments(argumentsList: readonly string[]): string[] {
+  return [
+    ...new Set(
+      argumentsList.filter(
+        (argument) =>
+          argument.length > 0 &&
+          argument.length <= 32768 &&
+          SUPPORTED_MEDIA_EXTENSIONS.has(extname(argument).toLowerCase())
+      )
+    )
+  ]
+}
 
 function isSafeExternalUrl(value: string): boolean {
   try {
@@ -383,11 +431,22 @@ function setApplicationFullscreen(fullscreen: boolean): void {
     return
   }
 
+  const hasVisibleVideoLayer =
+    embeddedVideoWindow !== null &&
+    !embeddedVideoWindow.isDestroyed() &&
+    embeddedVideoWindow.isVisible()
+
   applicationWindow.setFullScreen(fullscreen)
   applicationWindow.webContents.send('video:fullscreen-changed', fullscreen)
 
   setTimeout(() => {
     if (!videoInputWindow || videoInputWindow.isDestroyed()) {
+      return
+    }
+
+    if (!hasVisibleVideoLayer) {
+      videoInputWindow.setAlwaysOnTop(false)
+      videoInputWindow.hide()
       return
     }
 
@@ -526,6 +585,16 @@ async function openDroppedMedia(value: unknown): Promise<{
   }
 }
 
+async function openExternalMediaPaths(filePaths: readonly string[]): Promise<void> {
+  const result = await openDroppedMedia(filePaths)
+
+  if (result.status !== 'opened' || !applicationWindow || applicationWindow.isDestroyed()) {
+    return
+  }
+
+  applicationWindow.webContents.send('media:opened-externally', result)
+}
+
 async function openMediaFile(): Promise<{
   status: 'opened' | 'cancelled' | 'error'
   name?: string
@@ -626,6 +695,10 @@ async function openMediaFolder(): Promise<{
 }
 
 app.whenReady().then(() => {
+  if (!hasSingleInstanceLock) {
+    return
+  }
+
   electronApp.setAppUserModelId(APP_ID)
 
   app.on('browser-window-created', (_event, window) => {
@@ -835,6 +908,13 @@ app.whenReady().then(() => {
   })
 
   applicationWindow = createWindow()
+  const initialMediaPaths = getMediaPathsFromArguments(process.argv)
+
+  if (initialMediaPaths.length > 0) {
+    applicationWindow.webContents.once('did-finish-load', () => {
+      void openExternalMediaPaths(initialMediaPaths)
+    })
+  }
   embeddedVideoWindow = createVideoWindow(applicationWindow)
   videoInputWindow = createVideoInputWindow(applicationWindow)
 
